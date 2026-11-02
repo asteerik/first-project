@@ -1,0 +1,223 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f6f6f0">
+    <meta name="description" content="Работа в православных и социально ориентированных организациях. Найдите дело по душе.">
+    <title>Работа для Души — работа, которая приносит пользу</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <script src="{% static 'js/homepage.js' %}" defer></script>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Перейти к содержимому</a>
+
+    <header class="site-header">
+        <div class="header-inner container">
+            <a class="brand" href="#home" aria-label="Работа для Души — главная">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" fill="none">
+                        <path d="M24 4v9m-4.5-4.5h9M9 19l15-9 15 9v20H9V19Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19 39V26h10v13M16 20h.01M32 20h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="brand-copy">
+                    <span class="brand-name">Работа для Души</span>
+                    <span class="brand-tagline">Работа с верой, для добрых дел</span>
+                </span>
+            </a>
+
+            <nav class="main-nav" aria-label="Основная навигация">
+                <a class="nav-link is-current" href="#home" aria-current="page">Главная</a>
+                <a class="nav-link" href="/">Вакансии</a>
+                <a class="nav-link" href="/">Работодателям</a>
+                <a class="nav-link" href="/">О проекте</a>
+            </nav>
+
+            <div class="header-actions">
+                <a class="login-link" href="/">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0"/></svg>
+                    <span>Войти</span>
+                </a>
+                <a class="button button--header" href="/">Регистрация</a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <section class="hero" id="home" aria-labelledby="hero-title" data-hero-slider>
+            <div class="hero-slides" aria-hidden="true">
+                <img
+                    class="hero-slide is-active"
+                    src="{% static 'images/nilov-monastery.jpg' %}"
+                    alt=""
+                    data-hero-slide
+                    data-credit-url="https://commons.wikimedia.org/wiki/File:Lake_Seliger._Nilov_Monastery_P4182513_2800.jpg"
+                    data-credit-label="Нило-Столобенская пустынь — Alexxx1979"
+                    data-license-url="https://creativecommons.org/licenses/by-sa/4.0/"
+                    data-license-label="CC BY-SA 4.0">
+                <img
+                    class="hero-slide"
+                    src="{% static 'images/lake-nero-monastery.jpg' %}"
+                    alt=""
+                    data-hero-slide
+                    data-credit-url="https://commons.wikimedia.org/wiki/File:Rostov_Lake_Nero_Spaso-Yakovlevsky_Monastery_IMG_0981_1725.jpg"
+                    data-credit-label="Спасо-Яковлевский монастырь — Alexxx1979"
+                    data-license-url="https://creativecommons.org/licenses/by-sa/3.0/"
+                    data-license-label="CC BY-SA 3.0">
+                <img
+                    class="hero-slide"
+                    src="{% static 'images/konevets-monastery.jpg' %}"
+                    alt=""
+                    data-hero-slide
+                    data-credit-url="https://commons.wikimedia.org/wiki/File:Lake_Ladoga._Island_Konevets._Konevsky_Monastery_P7160015_2200.jpg"
+                    data-credit-label="Коневский монастырь — Alexxx1979"
+                    data-license-url="https://creativecommons.org/licenses/by-sa/4.0/"
+                    data-license-label="CC BY-SA 4.0">
+            </div>
+            <div class="hero-shade" aria-hidden="true"></div>
+
+            <div class="hero-content container">
+                <div class="hero-copy">
+                    <p class="eyebrow"><span></span> Православный портал трудоустройства</p>
+                    <h1 id="hero-title">Найдите работу,<br>которая приносит пользу</h1>
+                    <p class="hero-description">
+                        Вакансии в православных и социально ориентированных организациях,
+                        компаниях с традиционными ценностями и проектах, направленных на благо людей.
+                    </p>
+                </div>
+
+                <form class="hero-search" action="/" method="get" role="search">
+                    <label class="search-field search-field--keyword">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+                        <span class="visually-hidden">Должность или ключевое слово</span>
+                        <input type="search" name="q" placeholder="Должность или ключевое слово">
+                    </label>
+                    <label class="search-field">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10.1c0 5-7 11-7 11s-7-6-7-11a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.2"/></svg>
+                        <span class="visually-hidden">Регион</span>
+                        <select name="region" aria-label="Регион">
+                            <option value="">Все регионы</option>
+                            <option value="moscow">Москва</option>
+                            <option value="spb">Санкт-Петербург</option>
+                            <option value="nk">Нижегородская область</option>
+                        </select>
+                    </label>
+                    <label class="search-field">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+                        <span class="visually-hidden">Категория вакансии</span>
+                        <select name="category" aria-label="Категория вакансии">
+                            <option value="">Все категории</option>
+                            <option value="education">Образование</option>
+                            <option value="social">Социальные услуги</option>
+                            <option value="clergy">Священнослужение</option>
+                        </select>
+                    </label>
+                    <button class="button button--search" type="submit">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                        <span>Найти работу</span>
+                    </button>
+                </form>
+
+                <a class="hero-cta" href="/">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M12 11v6m-3-3h6"/></svg>
+                    <span>Перейти к вакансиям</span>
+                    <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                </a>
+            </div>
+
+            <blockquote class="hero-quote">
+                <p>«Труд — это не только средство к существованию, но и возможность послужить ближнему»</p>
+                <cite>Святитель Иоанн Златоуст</cite>
+            </blockquote>
+
+            <p class="photo-credit">
+                Фото:
+                <a data-hero-credit href="https://commons.wikimedia.org/wiki/File:Lake_Seliger._Nilov_Monastery_P4182513_2800.jpg" target="_blank" rel="noopener noreferrer">Нило-Столобенская пустынь — Alexxx1979</a>
+                · <a data-hero-license href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>
+                · кадрировано
+            </p>
+        </section>
+
+        <section class="pathways" aria-label="Разделы проекта">
+            <div class="pathways-grid container">
+                <a class="pathway-card" href="/">
+                    <span class="pathway-icon" aria-hidden="true">
+                        <svg viewBox="0 0 32 32"><circle cx="16" cy="10" r="6"/><path d="M5 28c0-6 4.9-10 11-10s11 4 11 10"/></svg>
+                    </span>
+                    <h2>Актуальные вакансии</h2>
+                    <p>Работа в достойных организациях и компаниях</p>
+                    <span class="pathway-link">Перейти к вакансиям <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span>
+                </a>
+
+                <a class="pathway-card" href="/">
+                    <span class="pathway-icon" aria-hidden="true">
+                        <svg viewBox="0 0 32 32"><path d="M8 4h11l7 7v17H8z"/><path d="M19 4v8h7M12 17h10m-10 5h10"/></svg>
+                    </span>
+                    <h2>Создание резюме</h2>
+                    <p>Расскажите о себе и своих навыках</p>
+                    <span class="pathway-link">Создать резюме <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span>
+                </a>
+
+                <a class="pathway-card" href="/">
+                    <span class="pathway-icon" aria-hidden="true">
+                        <svg viewBox="0 0 32 32"><path d="m16 3 11 4v8c0 7-4.7 11.8-11 14-6.3-2.2-11-7-11-14V7z"/><path d="M16 10v11m-4-7h8"/></svg>
+                    </span>
+                    <h2>Работодателям</h2>
+                    <p>Найдите достойных сотрудников с близкими ценностями</p>
+                    <span class="pathway-link">Войти в кабинет <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span>
+                </a>
+
+                <a class="pathway-card" href="/">
+                    <span class="pathway-icon" aria-hidden="true">
+                        <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/><path d="M16 14v8m0-14h.01"/></svg>
+                    </span>
+                    <h2>О проекте</h2>
+                    <p>Узнайте о миссии проекта и принципах достойного труда</p>
+                    <span class="pathway-link">Узнать больше <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span>
+                </a>
+            </div>
+            <p class="pathways-motto"><span aria-hidden="true">✦</span> Достойный труд — во славу Божию и на благо людей! <span aria-hidden="true">✦</span></p>
+        </section>
+
+        {% if vacancies %}
+        <section class="vacancies-section container" aria-labelledby="vacancies-title">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow eyebrow--dark">Ваше следующее дело</p>
+                    <h2 id="vacancies-title">Свежие вакансии</h2>
+                </div>
+                <a class="text-link" href="/">Все вакансии <span aria-hidden="true">→</span></a>
+            </div>
+            <div class="vacancies-grid">
+                {% for vacancy in vacancies %}
+                <article class="vacancy-card">
+                    <span class="vacancy-category">{{ vacancy.get_category_display }}</span>
+                    <h3>{{ vacancy.title }}</h3>
+                    <p class="vacancy-organization">{{ vacancy.organization.name }}</p>
+                    <a class="vacancy-link" href="/api/vacancies/{{ vacancy.id }}/">Подробнее <span aria-hidden="true">→</span></a>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-inner container">
+            <a class="footer-brand" href="#home">Работа для Души</a>
+            <p>Платформа для поиска работы в православных и социально ориентированных организациях</p>
+            <nav class="footer-nav" aria-label="Дополнительная навигация">
+                <a href="/">Помощь</a>
+                <a href="/">Контакты</a>
+                <a href="/">О проекте</a>
+            </nav>
+            <span class="copyright">&copy; 2026 Работа для Души</span>
+        </div>
+    </footer>
+</body>
+</html>
