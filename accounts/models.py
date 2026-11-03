@@ -4,6 +4,8 @@ from django.contrib.auth.models import PermissionsMixin
 from django.core.validators import RegexValidator
 from django.db import models
 
+from .files import PrivateStorage, resume_upload_path, validate_resume_file
+
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -86,6 +88,15 @@ class CandidateProfile(models.Model):
         choices=ResumeVisibility.choices,
         default=ResumeVisibility.PRIVATE,
     )
+    resume_file = models.FileField(
+        "Файл резюме",
+        upload_to=resume_upload_path,
+        storage=PrivateStorage(),
+        validators=[validate_resume_file],
+        blank=True,
+        max_length=255,
+    )
+    resume_file_name = models.CharField("Имя файла резюме", max_length=255, blank=True)
     created_at = models.DateTimeField("Создан", auto_now_add=True)
     updated_at = models.DateTimeField("Обновлён", auto_now=True)
 

@@ -1,19 +1,25 @@
+from pathlib import Path
+
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from .files import validate_resume_file
 from .models import CandidateProfile, Organization, OrganizationMembership, User
-from .permissions import can_manage_organization, has_organization_access
+from .permissions import IsCandidate, can_manage_organization, has_organization_access, user_can_view_resume
 from .serializers import (
     CandidateProfileSerializer,
     OrganizationMembershipSerializer,
@@ -89,6 +95,72 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         if self.request.user.role != User.Role.CANDIDATE:
             raise PermissionDenied("Профиль соискателя доступен только соискателю.")
         return get_object_or_404(CandidateProfile, user=self.request.user)
+
+
+class ResumeUploadThrottle(UserRateThrottle):
+    scope = "upload"
+
+
+def _resume_response(profile):
+    try:
+        handle = profile.resume_file.open("rb")
+    except FileNotFoundError as exc:
+        raise Http404 from exc
+    response = FileResponse(handle, as_attachment=True, filename=profile.resume_file_name or "resume")
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+class ResumeFileView(APIView):
+    permission_classes = [IsCandidate]
+    parser_classes = [MultiPartParser]
+
+    def get_throttles(self):
+        if self.request.method == "PUT":
+            return [ResumeUploadThrottle()]
+        return super().get_throttles()
+
+    def get(self, request):
+        profile = get_object_or_404(CandidateProfile, user=request.user)
+        if not profile.resume_file:
+            raise Http404
+        return _resume_response(profile)
+
+    def put(self, request):
+        uploaded = request.FILES.get("file")
+        if uploaded is None:
+            raise ValidationError({"file": "Прикрепите файл в поле «file»."})
+        try:
+            validate_resume_file(uploaded)
+        except DjangoValidationError as exc:
+            raise ValidationError({"file": exc.messages}) from exc
+        profile = get_object_or_404(CandidateProfile, user=request.user)
+        old_file = profile.resume_file.name
+        profile.resume_file.save(uploaded.name, uploaded, save=False)
+        profile.resume_file_name = Path(uploaded.name).name[:255]
+        profile.save(update_fields=["resume_file", "resume_file_name", "updated_at"])
+        if old_file:
+            profile.resume_file.storage.delete(old_file)
+        return Response(CandidateProfileSerializer(profile).data)
+
+    def delete(self, request):
+        profile = get_object_or_404(CandidateProfile, user=request.user)
+        if profile.resume_file:
+            profile.resume_file.delete(save=False)
+            profile.resume_file_name = ""
+            profile.save(update_fields=["resume_file", "resume_file_name", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CandidateResumeFileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        profile = get_object_or_404(CandidateProfile, pk=pk)
+        if not profile.resume_file or not user_can_view_resume(request.user, profile):
+            raise Http404
+        return _resume_response(profile)
 
 
 class OrganizationListCreateView(generics.ListCreateAPIView):

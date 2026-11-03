@@ -1,3 +1,6 @@
+import tempfile
+from pathlib import Path
+
 from .settings import *
 
 DATABASES = {
@@ -17,5 +20,7 @@ REST_FRAMEWORK = {
         "user": "10000/hour",
         "login": "10000/minute",
         "registration": "10000/hour",
+        "upload": "10000/hour",
     },
 }
+PRIVATE_MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="kovcheg-test-media-"))

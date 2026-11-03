@@ -28,6 +28,13 @@ from .serializers import (
     VacancySerializer,
 )
 
+# Коды регионов из формы поиска на главной; сопоставляются с текстом поля location.
+REGION_KEYWORDS = {
+    "moscow": ("Москва", "Московская"),
+    "spb": ("Санкт-Петербург", "Петербург", "Ленинградская"),
+    "nk": ("Нижний Новгород", "Нижегородская"),
+}
+
 
 def parse_nonnegative_integer(value, parameter):
     try:
@@ -79,6 +86,19 @@ class VacancyListCreateView(generics.ListCreateAPIView):
         location = self.request.query_params.get("location", "").strip()
         if location:
             queryset = queryset.filter(location__icontains=location)
+        region = self.request.query_params.get("region", "").strip()
+        if region:
+            if region not in REGION_KEYWORDS and region != "other":
+                raise ValidationError({"region": "Неизвестный регион."})
+            if region == "other":
+                for keywords in REGION_KEYWORDS.values():
+                    for keyword in keywords:
+                        queryset = queryset.exclude(location__icontains=keyword)
+            else:
+                region_filter = Q()
+                for keyword in REGION_KEYWORDS[region]:
+                    region_filter |= Q(location__icontains=keyword)
+                queryset = queryset.filter(region_filter)
         category = self.request.query_params.get("category", "").strip()
         if category:
             queryset = queryset.filter(category__slug=category)

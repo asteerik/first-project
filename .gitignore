@@ -7,3 +7,4 @@ dev.sqlite3
 staticfiles/
 backups/
 media/
+private_media/

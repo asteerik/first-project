@@ -75,17 +75,29 @@ class CandidateProfileSerializer(serializers.ModelSerializer):
             "experience",
             "education",
             "resume_visibility",
+            "has_resume_file",
+            "resume_file_name",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "user", "created_at", "updated_at")
+        read_only_fields = ("id", "user", "has_resume_file", "resume_file_name", "created_at", "updated_at")
+
+    has_resume_file = serializers.SerializerMethodField()
+
+    def get_has_resume_file(self, profile):
+        return bool(profile.resume_file)
 
 
 class PublicCandidateSerializer(serializers.ModelSerializer):
+    has_resume_file = serializers.SerializerMethodField()
+
     class Meta:
         model = CandidateProfile
-        fields = ("id", "full_name", "location", "desired_position", "experience", "education")
+        fields = ("id", "full_name", "location", "desired_position", "experience", "education", "has_resume_file")
         read_only_fields = fields
+
+    def get_has_resume_file(self, profile):
+        return bool(profile.resume_file)
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
