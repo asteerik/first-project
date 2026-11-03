@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация работодателя — Ковчег Труда{% endblock %}
+
+{% block content %}
+<section class="page-section container">
+    <div class="form-card">
+        <h1>Регистрация работодателя</h1>
+        <p class="form-hint">Укажите название вашей организации. После проверки администратором ваши вакансии появятся на сайте.</p>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% include "accounts/_form_fields.html" %}
+            <button class="button form-submit" type="submit">Зарегистрироваться</button>
+        </form>
+        <p class="form-footer">Уже есть аккаунт? <a class="text-link" href="{% url 'accounts:login' %}">Войти</a></p>
+    </div>
+</section>
+{% endblock %}

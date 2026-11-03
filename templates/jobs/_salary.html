@@ -1,0 +1,7 @@
+{% if vacancy.salary_min or vacancy.salary_max %}
+<p class="vacancy-salary">
+    {% if vacancy.salary_min and vacancy.salary_max %}{{ vacancy.salary_min }}–{{ vacancy.salary_max }} ₽
+    {% elif vacancy.salary_min %}от {{ vacancy.salary_min }} ₽
+    {% else %}до {{ vacancy.salary_max }} ₽{% endif %}
+</p>
+{% endif %}

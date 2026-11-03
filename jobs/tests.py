@@ -258,6 +258,138 @@ class RecruitmentApiTests(TestCase):
         self.assertEqual(self.client.get("/api/vacancies/?region=mars").status_code, 400)
         self.assertEqual(self.client.get("/api/vacancies/?category=prihod").data["count"], 1)
 
+    def test_catalog_pages_show_only_published_vacancies(self):
+        self.client.force_authenticate(None)
+        Vacancy.objects.create(
+            organization=self.organization,
+            category=self.category,
+            created_by=self.employer,
+            title="Черновик не должен быть виден",
+            description="Описание",
+            location="Москва",
+            status=Vacancy.Status.PENDING,
+        )
+        page = self.client.get("/vacancies/?region=moscow&q=Помощник")
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Помощник по хозяйству")
+        self.assertNotContains(page, "Черновик не должен быть виден")
+        self.assertContains(self.client.get("/vacancies/?region=spb"), "вакансий не найдено")
+        self.assertEqual(self.client.get("/vacancies/?region=mars&page=abc").status_code, 200)
+        self.assertEqual(self.client.get(f"/vacancies/{self.vacancy.pk}/").status_code, 200)
+        draft = Vacancy.objects.get(title="Черновик не должен быть виден")
+        self.assertEqual(self.client.get(f"/vacancies/{draft.pk}/").status_code, 404)
+
+    def test_web_registration_resume_form_and_login_flow(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import Client
+
+        web = Client()
+        self.assertEqual(web.get("/resume/").status_code, 302)
+
+        weak = web.post("/register/", {"full_name": "Иван", "email": "web@example.test", "password": "123"})
+        self.assertEqual(weak.status_code, 200)
+        self.assertFalse(User.objects.filter(email="web@example.test").exists())
+
+        ok = web.post(
+            "/register/",
+            {"full_name": "Иван", "email": "web@example.test", "password": "Long-Test-Password-123!"},
+        )
+        self.assertRedirects(ok, "/resume/")
+        user = User.objects.get(email="web@example.test")
+        self.assertEqual(user.role, User.Role.CANDIDATE)
+
+        form_data = {
+            "full_name": "Иван Иванов",
+            "phone": "+7 900 000-00-00",
+            "location": "Москва",
+            "desired_position": "Регент",
+            "experience": "5 лет",
+            "education": "",
+            "resume_visibility": "private",
+        }
+        bad = web.post("/resume/", {**form_data, "resume_file": SimpleUploadedFile("cv.exe", b"MZ")})
+        self.assertEqual(bad.status_code, 200)
+        saved = web.post("/resume/", {**form_data, "resume_file": SimpleUploadedFile("cv.pdf", b"%PDF-1.4 x")})
+        self.assertRedirects(saved, "/", fetch_redirect_response=False)
+        profile = user.candidate_profile
+        profile.refresh_from_db()
+        self.assertEqual(profile.full_name, "Иван Иванов")
+        self.assertEqual(profile.resume_file_name, "cv.pdf")
+        self.assertEqual(profile.resume_visibility, "private")
+
+        self.assertEqual(web.post("/logout/").status_code, 302)
+        self.assertEqual(web.get("/resume/").status_code, 302)
+        wrong = web.post("/login/", {"email": "web@example.test", "password": "wrong"})
+        self.assertContains(wrong, "Неверная почта или пароль")
+        good = web.post("/login/", {"email": "web@example.test", "password": "Long-Test-Password-123!"})
+        self.assertRedirects(good, "/resume/")
+        evil = web.post("/login/", {"email": "web@example.test", "password": "Long-Test-Password-123!", "next": "https://evil.test/"})
+        self.assertRedirects(evil, "/resume/")
+
+        web.post("/logout/")
+        web.post("/login/", {"email": self.employer.email, "password": "Long-Test-Password-123!"})
+        self.assertEqual(web.get("/resume/").status_code, 302)
+
+    def test_employer_web_cabinet_flow(self):
+        from django.test import Client
+
+        web = Client()
+        self.assertEqual(web.get("/employer/").status_code, 302)
+        ok = web.post(
+            "/register/employer/",
+            {"organization_name": "Храм Тест", "email": "emp-web@example.test", "password": "Long-Test-Password-123!"},
+        )
+        self.assertRedirects(ok, "/employer/")
+        user = User.objects.get(email="emp-web@example.test")
+        self.assertEqual(user.role, User.Role.EMPLOYER)
+        self.assertEqual(user.organizations.get().name, "Храм Тест")
+
+        data = {
+            "category": self.category.pk,
+            "title": "Звонарь",
+            "location": "Москва",
+            "employment_type": "full_time",
+            "salary_min": "50000",
+            "salary_max": "40000",
+            "description": "Короткое",
+            "requirements": "",
+        }
+        bad = web.post("/employer/vacancies/new/", data)
+        self.assertEqual(bad.status_code, 200)
+        self.assertFalse(Vacancy.objects.filter(title="Звонарь").exists())
+
+        data.update(salary_max="60000", description="Нужен звонарь для утренних и вечерних служб в храме города.")
+        self.assertEqual(web.post("/employer/vacancies/new/", data).status_code, 302)
+        vacancy = Vacancy.objects.get(title="Звонарь")
+        self.assertEqual(vacancy.status, Vacancy.Status.PENDING)
+        self.assertEqual(vacancy.created_by, user)
+        self.assertContains(web.get("/employer/"), "Звонарь")
+
+        data["title"] = "Звонарь-помощник"
+        self.assertEqual(web.post(f"/employer/vacancies/{vacancy.pk}/edit/", data).status_code, 302)
+        vacancy.refresh_from_db()
+        self.assertEqual(vacancy.title, "Звонарь-помощник")
+
+        other = Client()
+        other.post(
+            "/register/employer/",
+            {"organization_name": "Чужая", "email": "other-emp@example.test", "password": "Long-Test-Password-123!"},
+        )
+        self.assertEqual(other.get(f"/employer/vacancies/{vacancy.pk}/edit/").status_code, 404)
+        self.assertEqual(other.post(f"/employer/vacancies/{vacancy.pk}/close/").status_code, 404)
+
+        self.assertEqual(web.post(f"/employer/vacancies/{vacancy.pk}/close/").status_code, 302)
+        vacancy.refresh_from_db()
+        self.assertEqual(vacancy.status, Vacancy.Status.CLOSED)
+        self.assertEqual(web.get(f"/employer/vacancies/{vacancy.pk}/edit/").status_code, 404)
+
+        candidate = Client()
+        candidate.post(
+            "/register/",
+            {"full_name": "Иван", "email": "cand2@example.test", "password": "Long-Test-Password-123!"},
+        )
+        self.assertEqual(candidate.get("/employer/").status_code, 302)
+
     def test_registration_cannot_assign_moderator_role(self):
         response = self.client.post(
             "/api/auth/register/",

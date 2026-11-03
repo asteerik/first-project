@@ -36,6 +36,20 @@ REGION_KEYWORDS = {
 }
 
 
+def apply_region_filter(queryset, region):
+    if region not in REGION_KEYWORDS and region != "other":
+        raise ValidationError({"region": "Неизвестный регион."})
+    if region == "other":
+        for keywords in REGION_KEYWORDS.values():
+            for keyword in keywords:
+                queryset = queryset.exclude(location__icontains=keyword)
+        return queryset
+    region_filter = Q()
+    for keyword in REGION_KEYWORDS[region]:
+        region_filter |= Q(location__icontains=keyword)
+    return queryset.filter(region_filter)
+
+
 def parse_nonnegative_integer(value, parameter):
     try:
         parsed = int(value)
@@ -88,17 +102,7 @@ class VacancyListCreateView(generics.ListCreateAPIView):
             queryset = queryset.filter(location__icontains=location)
         region = self.request.query_params.get("region", "").strip()
         if region:
-            if region not in REGION_KEYWORDS and region != "other":
-                raise ValidationError({"region": "Неизвестный регион."})
-            if region == "other":
-                for keywords in REGION_KEYWORDS.values():
-                    for keyword in keywords:
-                        queryset = queryset.exclude(location__icontains=keyword)
-            else:
-                region_filter = Q()
-                for keyword in REGION_KEYWORDS[region]:
-                    region_filter |= Q(location__icontains=keyword)
-                queryset = queryset.filter(region_filter)
+            queryset = apply_region_filter(queryset, region)
         category = self.request.query_params.get("category", "").strip()
         if category:
             queryset = queryset.filter(category__slug=category)
