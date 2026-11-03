@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Вход — Ковчег Труда{% endblock %}
+
+{% block content %}
+<section class="page-section container">
+    <div class="form-card">
+        <h1>Вход</h1>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% include "accounts/_form_fields.html" %}
+            <button class="button form-submit" type="submit">Войти</button>
+        </form>
+        <p class="form-footer">Нет аккаунта? <a class="text-link" href="{% url 'accounts:register_as_seeker' %}">Зарегистрироваться</a></p>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Моё резюме — Ковчег Труда{% endblock %}
+
+{% block content %}
+<section class="page-section container">
+    <div class="form-card form-card--wide">
+        <h1>Моё резюме</h1>
+        <p class="form-hint">Выберите, кто сможет видеть ваше резюме. По умолчанию оно скрыто.</p>
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            {% include "accounts/_form_fields.html" %}
+            <p class="form-hint">Файл резюме: PDF или DOCX, не более 5 МБ.</p>
+            <button class="button form-submit" type="submit">Сохранить</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

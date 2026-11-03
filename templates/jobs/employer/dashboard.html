@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Кабинет работодателя — Ковчег Труда{% endblock %}
+
+{% block content %}
+<section class="page-section container">
+    <div class="dashboard-head">
+        <h1>Кабинет работодателя</h1>
+        <a class="button" href="{% url 'jobs:employer_vacancy_new' %}">Создать вакансию</a>
+    </div>
+    {% for organization in organizations %}
+    <p class="form-hint">
+        Организация: <strong>{{ organization.name }}</strong> — {{ organization.get_verification_status_display }}.
+        {% if organization.verification_status != 'approved' %}Вакансии станут видны на сайте после проверки организации.{% endif %}
+    </p>
+    {% endfor %}
+
+    {% if vacancies %}
+    <div class="dashboard-list">
+        {% for vacancy in vacancies %}
+        <article class="dashboard-item">
+            <div>
+                <h3>{{ vacancy.title }}</h3>
+                <p class="vacancy-organization">{{ vacancy.organization.name }} · {{ vacancy.location }}</p>
+                <span class="status-badge status-badge--{{ vacancy.status }}">{{ vacancy.get_status_display }}</span>
+                {% if vacancy.status == 'rejected' and vacancy.moderation_note %}
+                <p class="form-error">Причина отказа: {{ vacancy.moderation_note }}</p>
+                {% endif %}
+            </div>
+            <div class="dashboard-actions">
+                {% if vacancy.status == 'approved' %}<a class="text-link" href="{% url 'jobs:detail' vacancy.id %}">Открыть</a>{% endif %}
+                {% if vacancy.status != 'closed' %}
+                <a class="text-link" href="{% url 'jobs:employer_vacancy_edit' vacancy.id %}">Изменить</a>
+                <form method="post" action="{% url 'jobs:employer_vacancy_close' vacancy.id %}">
+                    {% csrf_token %}
+                    <button class="text-link text-link--button" type="submit">Закрыть</button>
+                </form>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>У вас пока нет вакансий.</p>
+        <a class="text-link" href="{% url 'jobs:employer_vacancy_new' %}">Создать первую вакансию</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

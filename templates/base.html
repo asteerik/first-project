@@ -1,0 +1,79 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f6f6f0">
+    <title>{% block title %}Ковчег Труда{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pages.css' %}">
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Перейти к содержимому</a>
+
+    <header class="site-header">
+        <div class="header-inner container">
+            <a class="brand" href="{% url 'homepage' %}" aria-label="Ковчег Труда — главная">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" fill="none">
+                        <path d="M24 4v9m-4.5-4.5h9M9 19l15-9 15 9v20H9V19Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19 39V26h10v13M16 20h.01M32 20h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="brand-copy">
+                    <span class="brand-name">Ковчег Труда</span>
+                    <span class="brand-tagline">Работа с верой, для добрых дел</span>
+                </span>
+            </a>
+
+            <nav class="main-nav" aria-label="Основная навигация">
+                <a class="nav-link" href="{% url 'homepage' %}">Главная</a>
+                <a class="nav-link{% if nav_current == 'jobs' %} is-current{% endif %}" href="{% url 'jobs:list' %}"{% if nav_current == 'jobs' %} aria-current="page"{% endif %}>Вакансии</a>
+                {% if user.is_authenticated and user.role == 'employer' %}<a class="nav-link" href="{% url 'jobs:employer_dashboard' %}">Кабинет</a>{% else %}<a class="nav-link" href="{% url 'accounts:register_as_employer' %}">Работодателям</a>{% endif %}
+                <a class="nav-link" href="{% url 'pages:about' %}">О проекте</a>
+            </nav>
+
+            <div class="header-actions">
+                {% if user.is_authenticated %}
+                {% if user.role == 'candidate' %}<a class="login-link" href="{% url 'accounts:resume' %}"><span>Моё резюме</span></a>{% endif %}
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button class="button button--header" type="submit">Выйти</button>
+                </form>
+                {% else %}
+                <a class="login-link" href="{% url 'accounts:login' %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0"/></svg>
+                    <span>Войти</span>
+                </a>
+                <a class="button button--header" href="{% url 'accounts:register_as_seeker' %}">Регистрация</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        {% if messages %}
+        <div class="container flash-messages">
+            {% for message in messages %}<p class="flash flash--{{ message.level_tag }}" role="status">{{ message }}</p>{% endfor %}
+        </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-inner container">
+            <a class="footer-brand" href="{% url 'homepage' %}">Ковчег Труда</a>
+            <p>Платформа для поиска работы в православных и социально ориентированных организациях</p>
+            <nav class="footer-nav" aria-label="Дополнительная навигация">
+                <a href="{% url 'pages:help' %}">Помощь</a>
+                <a href="{% url 'pages:contacts' %}">Контакты</a>
+                <a href="{% url 'pages:about' %}">О проекте</a>
+            </nav>
+            <span class="copyright">&copy; 2026 Ковчег Труда</span>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Вакансии — Ковчег Труда{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="container">
+        <h1>Вакансии</h1>
+        <p>Работа в православных и социально ориентированных организациях.</p>
+        <form class="hero-search" action="{% url 'jobs:list' %}" method="get" role="search">
+            <label class="search-field">
+                <span class="visually-hidden">Должность или ключевое слово</span>
+                <input type="search" name="q" value="{{ query }}" placeholder="Должность или ключевое слово">
+            </label>
+            <label class="search-field">
+                <span class="visually-hidden">Регион</span>
+                <select name="region" aria-label="Регион">
+                    <option value="">Все регионы</option>
+                    {% for code, title in regions %}
+                    <option value="{{ code }}"{% if code == region %} selected{% endif %}>{{ title }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="search-field">
+                <span class="visually-hidden">Категория вакансии</span>
+                <select name="category" aria-label="Категория вакансии">
+                    <option value="">Все категории</option>
+                    {% for item in categories %}
+                    <option value="{{ item.slug }}"{% if item.slug == category %} selected{% endif %}>{{ item.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="button button--search" type="submit"><span>Найти работу</span></button>
+        </form>
+    </div>
+</section>
+
+<section class="page-section container" aria-label="Список вакансий">
+    <p class="results-count">Найдено вакансий: {{ page.paginator.count }}</p>
+    {% if page.object_list %}
+    <div class="vacancies-grid">
+        {% for vacancy in page.object_list %}
+        <article class="vacancy-card">
+            <span class="vacancy-category">{{ vacancy.category.name }}</span>
+            <h3>{{ vacancy.title }}</h3>
+            <p class="vacancy-organization">{{ vacancy.organization.name }}</p>
+            <ul class="vacancy-meta">
+                <li>{{ vacancy.location }}</li>
+                <li>{{ vacancy.get_employment_type_display }}</li>
+            </ul>
+            {% include "jobs/_salary.html" %}
+            <a class="vacancy-link" href="{% url 'jobs:detail' vacancy.id %}">Подробнее <span aria-hidden="true">→</span></a>
+        </article>
+        {% endfor %}
+    </div>
+    {% if page.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Страницы">
+        {% if page.has_previous %}<a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ page.previous_page_number }}">← Назад</a>{% endif %}
+        <span>Страница {{ page.number }} из {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ page.next_page_number }}">Вперёд →</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <p>По вашему запросу вакансий не найдено. Попробуйте изменить фильтры.</p>
+        <a class="text-link" href="{% url 'jobs:list' %}">Сбросить фильтры</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

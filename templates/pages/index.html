@@ -34,19 +34,32 @@
             <nav class="main-nav" aria-label="Основная навигация">
                 <a class="nav-link is-current" href="#home" aria-current="page">Главная</a>
                 <a class="nav-link" href="{% url 'jobs:list' %}">Вакансии</a>
-                <a class="nav-link" href="{% url 'accounts:login' %}">Работодателям</a>
+                {% if user.is_authenticated and user.role == 'employer' %}<a class="nav-link" href="{% url 'jobs:employer_dashboard' %}">Кабинет</a>{% else %}<a class="nav-link" href="{% url 'accounts:register_as_employer' %}">Работодателям</a>{% endif %}
                 <a class="nav-link" href="{% url 'pages:about' %}">О проекте</a>
             </nav>
 
             <div class="header-actions">
+                {% if user.is_authenticated %}
+                {% if user.role == 'candidate' %}<a class="login-link" href="{% url 'accounts:resume' %}"><span>Моё резюме</span></a>{% endif %}
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button class="button button--header" type="submit">Выйти</button>
+                </form>
+                {% else %}
                 <a class="login-link" href="{% url 'accounts:login' %}">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0"/></svg>
                     <span>Войти</span>
                 </a>
                 <a class="button button--header" href="{% url 'accounts:register_as_seeker' %}">Регистрация</a>
+                {% endif %}
             </div>
         </div>
     </header>
+    {% if messages %}
+    <div style="max-width:1120px;margin:16px auto 0;padding:0 20px">
+        {% for message in messages %}<p role="status" style="margin:0 0 8px;padding:12px 16px;border:1px solid #d8c48a;border-radius:8px;background:#fffdf6;font-size:14px">{{ message }}</p>{% endfor %}
+    </div>
+    {% endif %}
 
     <main id="main-content">
         <section class="hero" id="home" aria-labelledby="hero-title" data-hero-slider>
@@ -177,13 +190,13 @@
                     <span class="pathway-link">Создать резюме <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span>
                 </a>
 
-                <a class="pathway-card" href="{% url 'accounts:login' %}">
+                <a class="pathway-card" href="{% url 'accounts:register_as_employer' %}">
                     <span class="pathway-icon" aria-hidden="true">
                         <svg viewBox="0 0 32 32"><path d="m16 3 11 4v8c0 7-4.7 11.8-11 14-6.3-2.2-11-7-11-14V7z"/><path d="M16 10v11m-4-7h8"/></svg>
                     </span>
                     <h2>Работодателям</h2>
                     <p>Найдите достойных сотрудников с близкими ценностями</p>
-                    <span class="pathway-link">Войти в кабинет <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span>
+                    <span class="pathway-link">Разместить вакансию  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span>
                 </a>
 
                 <a class="pathway-card" href="{% url 'pages:about' %}">

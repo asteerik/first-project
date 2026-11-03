@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vacancy.title }} — Ковчег Труда{% endblock %}
+
+{% block content %}
+<section class="page-section container">
+    <a class="back-link" href="{% url 'jobs:list' %}">← Все вакансии</a>
+    <article class="vacancy-detail">
+        <span class="vacancy-category">{{ vacancy.category.name }}</span>
+        <h1>{{ vacancy.title }}</h1>
+        <p class="vacancy-organization">{{ vacancy.organization.name }}</p>
+        <ul class="vacancy-meta">
+            <li>{{ vacancy.location }}</li>
+            <li>{{ vacancy.get_employment_type_display }}</li>
+            {% if vacancy.published_at %}<li>Опубликовано {{ vacancy.published_at|date:"j E Y" }}</li>{% endif %}
+        </ul>
+        {% include "jobs/_salary.html" %}
+
+        <h2>Описание</h2>
+        <p>{{ vacancy.description|linebreaksbr }}</p>
+
+        {% if vacancy.requirements %}
+        <h2>Требования</h2>
+        <p>{{ vacancy.requirements|linebreaksbr }}</p>
+        {% endif %}
+
+        {% if vacancy.organization.description %}
+        <h2>Об организации</h2>
+        <p>{{ vacancy.organization.description|linebreaksbr }}</p>
+        {% endif %}
+    </article>
+</section>
+{% endblock %}
