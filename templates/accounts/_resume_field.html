@@ -1,0 +1,6 @@
+<div class="form-field resume-field{% if field.errors %} has-error{% endif %}">
+    {{ field.label_tag }}
+    {{ field }}
+    {% if field.help_text %}<p class="form-hint">{{ field.help_text }}</p>{% endif %}
+    {% for error in field.errors %}<p class="form-error" role="alert">{{ error }}</p>{% endfor %}
+</div>

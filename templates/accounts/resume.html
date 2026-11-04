@@ -4,15 +4,23 @@
 
 {% block content %}
 <section class="page-section container">
-    <div class="form-card form-card--wide">
-        <h1>Моё резюме</h1>
-        <p class="form-hint">Выберите, кто сможет видеть ваше резюме. По умолчанию оно скрыто.</p>
-        <form method="post" enctype="multipart/form-data" novalidate>
+    <div class="resume-form-card">
+        <div class="resume-form-heading">
+            <p class="eyebrow resume-form-heading__eyebrow">Работа для Души</p>
+            <h1>Данные профиля</h1>
+            <p>Ваши контактные сведения и информация для откликов.</p>
+        </div>
+        <form class="resume-form" method="post" enctype="multipart/form-data" novalidate data-resume-form>
             {% csrf_token %}
-            {% include "accounts/_form_fields.html" %}
-            <p class="form-hint">Файл резюме: PDF или DOCX, не более 5 МБ.</p>
-            <button class="button form-submit" type="submit">Сохранить</button>
+            {% include "accounts/_resume_form_fields.html" %}
+            <div class="resume-save-bar">
+                <span class="form-hint">Профиль виден в соответствии с настройкой видимости.</span>
+                <button class="button button--draft" type="submit" name="save_as_draft" value="1">Сохранить черновик</button>
+                <button class="button resume-save-button" type="submit">Сохранить профиль</button>
+            </div>
         </form>
     </div>
 </section>
+{% load static %}
+<script src="{% static 'js/resume-form.js' %}" defer></script>
 {% endblock %}

@@ -21,6 +21,11 @@ class CandidateResumePageTests(TestCase):
         return self.client.post(
             "/resumes/new/",
             {
+                "surname": "Смирнова",
+                "first_name": "Анна",
+                "patronymic": "Ивановна",
+                "phone": "+7 (900) 000-00-00",
+                "location": "Москва",
                 "title": "Резюме редактора",
                 "desired_position": "Редактор",
                 "experience": "Опыт работы",
@@ -40,6 +45,11 @@ class CandidateResumePageTests(TestCase):
         response = self.client.post(
             f"/resumes/{first_resume.pk}/edit/",
             {
+                "surname": "Смирнова",
+                "first_name": "Анна",
+                "patronymic": "Ивановна",
+                "phone": "+7 (900) 000-00-00",
+                "location": "Москва",
                 "title": "Старший редактор",
                 "desired_position": "Старший редактор",
                 "experience": "Обновлённый опыт",
@@ -50,6 +60,8 @@ class CandidateResumePageTests(TestCase):
         self.assertEqual(response.status_code, 302)
         first_resume.refresh_from_db()
         self.assertEqual(first_resume.title, "Старший редактор")
+        self.assertEqual(first_resume.candidate.full_name, "Анна Смирнова Ивановна")
+        self.assertEqual(first_resume.candidate.phone, "+7 (900) 000-00-00")
 
         response = self.client.post(f"/resumes/{first_resume.pk}/delete/")
         self.assertEqual(response.status_code, 302)
@@ -74,6 +86,58 @@ class CandidateResumePageTests(TestCase):
         self.assertContains(response, "Активных резюме нет")
         self.assertContains(response, "Создать резюме")
         self.assertContains(response, "/resumes/new/")
+
+    def test_resume_form_has_grouped_fields_autocomplete_and_upload_zone(self):
+        response = self.client.get("/resumes/new/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Личная информация")
+        self.assertContains(response, "Опыт и навыки")
+        self.assertContains(response, "Настройки видимости")
+        self.assertContains(response, "data-phone-mask")
+        self.assertContains(response, "data-file-drop")
+        self.assertContains(response, "position-suggestions")
+        self.assertContains(response, "Сохранить черновик")
+
+    def test_resume_form_validates_required_personal_data_and_sanitizes_rich_text(self):
+        data = {
+            "surname": "<script>alert(1)</script>",
+            "first_name": "Анна",
+            "patronymic": "",
+            "phone": "+7 (900) 000-00-00",
+            "location": "Москва",
+            "title": "Редактор",
+            "desired_position": "Редактор",
+            "portfolio_url": "https://example.test/portfolio",
+            "experience": (
+                "<p>Навык <strong>редактирования</strong></p><script>alert(1)</script>"
+                '<a href="javascript:alert(1)" onclick="alert(1)">ссылка</a>'
+            ),
+            "education": "<ul><li>МГУ</li></ul>",
+            "resume_visibility": "public",
+        }
+        response = self.client.post("/resumes/new/", data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CandidateResume.objects.exists())
+
+        data["surname"] = "Смирнова"
+        data["phone"] = "+7 (900) 000-00-00abc"
+        response = self.client.post("/resumes/new/", data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CandidateResume.objects.exists())
+
+        data["phone"] = "+7 (900) 000-00-00"
+        response = self.client.post("/resumes/new/", {**data, "save_as_draft": "1"})
+        self.assertEqual(response.status_code, 302)
+        resume = CandidateResume.objects.get()
+        self.assertEqual(
+            resume.experience,
+            '<p>Навык <strong>редактирования</strong></p><a>ссылка</a>',
+        )
+        self.assertEqual(resume.portfolio_url, "https://example.test/portfolio")
+        self.assertEqual(resume.resume_visibility, CandidateProfile.ResumeVisibility.PRIVATE)
+        self.assertEqual(resume.candidate.full_name, "Анна Смирнова")
+        self.assertEqual(resume.candidate.patronymic, "")
 
     def test_profile_menu_shows_candidate_name_and_theme_control(self):
         CandidateProfile.objects.create(

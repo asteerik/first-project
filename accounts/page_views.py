@@ -9,6 +9,7 @@ from django.views import View
 from django.views.generic import CreateView, FormView, TemplateView, UpdateView
 
 from .forms import (
+    POPULAR_POSITIONS,
     CandidateRegistrationForm,
     CandidateResumeForm,
     EmployerRegistrationForm,
@@ -16,6 +17,7 @@ from .forms import (
     WebLoginForm,
 )
 from .models import CandidateProfile, CandidateResume, User
+from jobs.regions import REGION_SUGGESTIONS
 
 
 def safe_next_url(request, default):
@@ -23,6 +25,14 @@ def safe_next_url(request, default):
     if target and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
         return target
     return default
+
+
+def save_resume_as_draft(request, form):
+    if not request.POST.get("save_as_draft"):
+        return False
+    form.cleaned_data["resume_visibility"] = CandidateProfile.ResumeVisibility.PRIVATE
+    form.instance.resume_visibility = CandidateProfile.ResumeVisibility.PRIVATE
+    return True
 
 
 class LoginPage(FormView):
@@ -100,9 +110,19 @@ class ResumePage(LoginRequiredMixin, UpdateView):
         return profile
 
     def form_valid(self, form):
+        is_draft = save_resume_as_draft(self.request, form)
         response = super().form_valid(form)
-        messages.success(self.request, "Резюме сохранено.")
+        if is_draft:
+            messages.success(self.request, "Черновик сохранён и доступен только вам.")
+        else:
+            messages.success(self.request, "Резюме сохранено.")
         return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["region_suggestions"] = REGION_SUGGESTIONS
+        context["popular_positions"] = POPULAR_POSITIONS
+        return context
 
 
 class CandidatePageMixin(LoginRequiredMixin):
@@ -121,6 +141,19 @@ class CandidatePageMixin(LoginRequiredMixin):
         )
         return profile
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["region_suggestions"] = REGION_SUGGESTIONS
+        context["popular_positions"] = POPULAR_POSITIONS
+        return context
+
+
+class CandidateResumeFormPageMixin(CandidatePageMixin):
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["candidate_profile"] = self.get_candidate_profile()
+        return kwargs
+
 
 class ResumeListPage(CandidatePageMixin, TemplateView):
     template_name = "accounts/resume_list.html"
@@ -133,19 +166,23 @@ class ResumeListPage(CandidatePageMixin, TemplateView):
         return context
 
 
-class ResumeCreatePage(CandidatePageMixin, CreateView):
+class ResumeCreatePage(CandidateResumeFormPageMixin, CreateView):
     template_name = "accounts/resume_form.html"
     form_class = CandidateResumeForm
     success_url = reverse_lazy("accounts:resumes")
 
     def form_valid(self, form):
         form.instance.candidate = self.get_candidate_profile()
+        is_draft = save_resume_as_draft(self.request, form)
         response = super().form_valid(form)
-        messages.success(self.request, "Резюме создано.")
+        if is_draft:
+            messages.success(self.request, "Черновик сохранён и доступен только вам.")
+        else:
+            messages.success(self.request, "Резюме создано.")
         return response
 
 
-class ResumeEditPage(CandidatePageMixin, UpdateView):
+class ResumeEditPage(CandidateResumeFormPageMixin, UpdateView):
     template_name = "accounts/resume_form.html"
     form_class = CandidateResumeForm
     success_url = reverse_lazy("accounts:resumes")
@@ -154,8 +191,12 @@ class ResumeEditPage(CandidatePageMixin, UpdateView):
         return CandidateResume.objects.filter(candidate__user=self.request.user)
 
     def form_valid(self, form):
+        is_draft = save_resume_as_draft(self.request, form)
         response = super().form_valid(form)
-        messages.success(self.request, "Резюме обновлено.")
+        if is_draft:
+            messages.success(self.request, "Черновик сохранён и доступен только вам.")
+        else:
+            messages.success(self.request, "Резюме обновлено.")
         return response
 
 

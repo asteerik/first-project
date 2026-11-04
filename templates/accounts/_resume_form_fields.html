@@ -1,0 +1,89 @@
+{% load resume_format %}
+{% if form.non_field_errors %}
+<div class="form-errors" role="alert">
+    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+</div>
+{% endif %}
+
+<section class="resume-section" aria-labelledby="resume-personal-heading">
+    <div class="resume-section__heading">
+        <h2 id="resume-personal-heading">Личная информация</h2>
+        <p>Поля со звёздочкой обязательны.</p>
+    </div>
+    <div class="resume-grid">
+        {% include "accounts/_resume_field.html" with field=form.surname %}
+        {% include "accounts/_resume_field.html" with field=form.first_name %}
+        {% include "accounts/_resume_field.html" with field=form.patronymic %}
+        {% include "accounts/_resume_field.html" with field=form.phone %}
+        {% include "accounts/_resume_field.html" with field=form.location %}
+    </div>
+</section>
+
+<section class="resume-section" aria-labelledby="resume-work-heading">
+    <div class="resume-section__heading">
+        <h2 id="resume-work-heading">Желаемая должность</h2>
+        <p>Опишите, какую работу вы ищете, и добавьте ссылку на свои работы.</p>
+    </div>
+    <div class="resume-grid">
+        {% if form.title %}{% include "accounts/_resume_field.html" with field=form.title %}{% endif %}
+        <div class="form-field resume-field">
+            {{ form.desired_position.label_tag }}
+            {{ form.desired_position }}
+            <datalist id="position-suggestions">
+                {% for position in popular_positions %}<option value="{{ position }}">{% endfor %}
+            </datalist>
+            {% if form.desired_position.help_text %}<p class="form-hint">{{ form.desired_position.help_text }}</p>{% endif %}
+            {% for error in form.desired_position.errors %}<p class="form-error" role="alert">{{ error }}</p>{% endfor %}
+        </div>
+        {% include "accounts/_resume_field.html" with field=form.portfolio_url %}
+    </div>
+</section>
+
+<section class="resume-section" aria-labelledby="resume-experience-heading">
+    <div class="resume-section__heading">
+        <h2 id="resume-experience-heading">Опыт и навыки</h2>
+        <p>Добавьте основные обязанности, достижения и навыки. Форматирование — по желанию.</p>
+    </div>
+    {% include "accounts/_resume_editor.html" with field=form.experience %}
+</section>
+
+<section class="resume-section" aria-labelledby="resume-education-heading">
+    <div class="resume-section__heading">
+        <h2 id="resume-education-heading">Образование</h2>
+    </div>
+    {% include "accounts/_resume_editor.html" with field=form.education %}
+</section>
+
+<section class="resume-section" aria-labelledby="resume-privacy-heading">
+    <div class="resume-section__heading">
+        <h2 id="resume-privacy-heading">Настройки видимости</h2>
+        <p>Резюме по умолчанию видно только вам. Вы можете изменить это здесь.</p>
+    </div>
+    <div class="resume-grid">
+        {% include "accounts/_resume_field.html" with field=form.resume_visibility %}
+    </div>
+</section>
+
+<section class="resume-section" aria-labelledby="resume-file-heading">
+    <div class="resume-section__heading">
+        <h2 id="resume-file-heading">Файл резюме</h2>
+        <p>Можно прикрепить PDF или DOCX размером до 5 МБ.</p>
+    </div>
+    <div class="resume-upload" data-file-drop>
+        <span class="resume-upload__icon" aria-hidden="true">↑</span>
+        <strong data-file-name>{% if form.instance.resume_file_name %}{{ form.instance.resume_file_name }}{% else %}Перетащите файл сюда{% endif %}</strong>
+        <span>или нажмите, чтобы выбрать PDF или DOCX (до 5 МБ)</span>
+        {{ form.resume_file }}
+    </div>
+    {% for error in form.resume_file.errors %}<p class="form-error" role="alert">{{ error }}</p>{% endfor %}
+    {% if form.remove_resume_file %}
+    <div class="form-field resume-remove-file">
+        {{ form.remove_resume_file }}
+        {{ form.remove_resume_file.label_tag }}
+    </div>
+    {% endif %}
+</section>
+
+<datalist id="region-suggestions">
+    {% for suggestion in region_suggestions %}<option value="{{ suggestion }}">{% endfor %}
+</datalist>

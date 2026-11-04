@@ -72,6 +72,9 @@ class CandidateProfile(models.Model):
         verbose_name="Пользователь",
     )
     full_name = models.CharField("ФИО", max_length=200)
+    surname = models.CharField("Фамилия", max_length=80, blank=True)
+    first_name = models.CharField("Имя", max_length=80, blank=True)
+    patronymic = models.CharField("Отчество", max_length=80, blank=True)
     phone = models.CharField(
         "Телефон",
         max_length=32,
@@ -80,6 +83,7 @@ class CandidateProfile(models.Model):
     )
     location = models.CharField("Город или регион", max_length=120, blank=True)
     desired_position = models.CharField("Желаемая должность", max_length=150, blank=True)
+    portfolio_url = models.URLField("Ссылка на портфолио", max_length=500, blank=True)
     experience = models.TextField("Опыт и навыки", blank=True)
     education = models.TextField("Образование", blank=True)
     resume_visibility = models.CharField(
@@ -117,6 +121,7 @@ class CandidateResume(models.Model):
     )
     title = models.CharField("Название резюме", max_length=120)
     desired_position = models.CharField("Желаемая должность", max_length=150, blank=True)
+    portfolio_url = models.URLField("Ссылка на портфолио", max_length=500, blank=True)
     experience = models.TextField("Опыт и навыки", blank=True)
     education = models.TextField("Образование", blank=True)
     resume_visibility = models.CharField(
