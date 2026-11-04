@@ -108,6 +108,44 @@ class CandidateProfile(models.Model):
         return self.full_name
 
 
+class CandidateResume(models.Model):
+    candidate = models.ForeignKey(
+        CandidateProfile,
+        on_delete=models.CASCADE,
+        related_name="resumes",
+        verbose_name="Соискатель",
+    )
+    title = models.CharField("Название резюме", max_length=120)
+    desired_position = models.CharField("Желаемая должность", max_length=150, blank=True)
+    experience = models.TextField("Опыт и навыки", blank=True)
+    education = models.TextField("Образование", blank=True)
+    resume_visibility = models.CharField(
+        "Видимость резюме",
+        max_length=24,
+        choices=CandidateProfile.ResumeVisibility.choices,
+        default=CandidateProfile.ResumeVisibility.PRIVATE,
+    )
+    resume_file = models.FileField(
+        "Файл резюме",
+        upload_to=resume_upload_path,
+        storage=PrivateStorage(),
+        validators=[validate_resume_file],
+        blank=True,
+        max_length=255,
+    )
+    resume_file_name = models.CharField("Имя файла резюме", max_length=255, blank=True)
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+    updated_at = models.DateTimeField("Обновлено", auto_now=True)
+
+    class Meta:
+        verbose_name = "резюме соискателя"
+        verbose_name_plural = "резюме соискателей"
+        ordering = ["-updated_at", "-pk"]
+
+    def __str__(self):
+        return f"{self.title} — {self.candidate.full_name}"
+
+
 class Organization(models.Model):
     class VerificationStatus(models.TextChoices):
         PENDING = "pending", "На проверке"

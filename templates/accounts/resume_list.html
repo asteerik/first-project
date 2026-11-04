@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Мои резюме — Работа для Души{% endblock %}
+
+{% block content %}
+<section class="page-section container">
+    <div class="dashboard-head">
+        <div>
+            <h1>Мои резюме</h1>
+            <p class="form-hint">Управляйте резюме и настройками их видимости.</p>
+        </div>
+        <a class="button button--header" href="{% url 'accounts:resume_create' %}">Создать резюме</a>
+    </div>
+    {% if resumes %}
+    <div class="dashboard-list">
+        {% for resume in resumes %}
+        <article class="dashboard-item">
+            <div>
+                <h2>{{ resume.title }}</h2>
+                {% if resume.desired_position %}<p>{{ resume.desired_position }}</p>{% endif %}
+                <p class="form-hint">Видимость: {{ resume.get_resume_visibility_display }} · Обновлено {{ resume.updated_at|date:"d.m.Y" }}</p>
+            </div>
+            <div class="dashboard-actions">
+                {% if resume.resume_file %}
+                <a href="{% url 'accounts:resume_download' resume.pk %}">Скачать файл</a>
+                {% endif %}
+                <a href="{% url 'accounts:resume_edit' resume.pk %}">Изменить</a>
+                <form method="post" action="{% url 'accounts:resume_delete' resume.pk %}">
+                    {% csrf_token %}
+                    <button class="text-link--button" type="submit">Удалить</button>
+                </form>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state resume-empty-state">
+        <span class="resume-empty-state__icon" aria-hidden="true">✦</span>
+        <h2>Активных резюме нет</h2>
+        <p>Создайте резюме, чтобы рассказать работодателям о своём опыте и навыках.</p>
+        <a class="button button--header" href="{% url 'accounts:resume_create' %}">Создать резюме</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

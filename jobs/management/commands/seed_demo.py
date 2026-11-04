@@ -10,7 +10,12 @@ DEMO_EMAIL = "demo-employer@example.invalid"
 CATEGORIES = [
     ("Образование", "education"),
     ("Социальные услуги", "social"),
+    ("Медицина и уход", "healthcare"),
+    ("Административная работа", "administration"),
+    ("Хозяйство и обслуживание", "facilities-maintenance"),
+    ("Кухня и питание", "catering"),
     ("Священнослужение", "clergy"),
+    ("Волонтёрство", "volunteering"),
 ]
 
 ORGANIZATIONS = [

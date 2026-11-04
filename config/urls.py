@@ -10,7 +10,18 @@ from jobs.employer_views import (
     VacancyCreatePage,
     VacancyEditPage,
 )
-from accounts.page_views import EmployerRegisterPage, LoginPage, LogoutPage, RegisterPage, ResumePage
+from accounts.page_views import (
+    EmployerRegisterPage,
+    LoginPage,
+    LogoutPage,
+    RegisterPage,
+    ResumeCreatePage,
+    ResumeDeletePage,
+    ResumeDownloadPage,
+    ResumeEditPage,
+    ResumeListPage,
+    ResumePage,
+)
 
 # Временные страницы: имена нужны шаблону главной; участник 2 заменит их настоящими.
 jobs_pages = [
@@ -27,6 +38,15 @@ accounts_pages = [
     path("register/employer/", EmployerRegisterPage.as_view(), name="register_as_employer"),
     path("logout/", LogoutPage.as_view(), name="logout"),
     path("resume/", ResumePage.as_view(), name="resume"),
+    path("resumes/", ResumeListPage.as_view(), name="resumes"),
+    path("resumes/new/", ResumeCreatePage.as_view(), name="resume_create"),
+    path("resumes/<int:pk>/edit/", ResumeEditPage.as_view(), name="resume_edit"),
+    path("resumes/<int:pk>/delete/", ResumeDeletePage.as_view(), name="resume_delete"),
+    path(
+        "resumes/<int:pk>/download/",
+        ResumeDownloadPage.as_view(),
+        name="resume_download",
+    ),
 ]
 info_pages = [
     path("about/", TemplateView.as_view(template_name="pages/about.html"), name="about"),

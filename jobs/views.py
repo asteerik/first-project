@@ -27,25 +27,23 @@ from .serializers import (
     FavoriteSerializer,
     VacancySerializer,
 )
-
-# Коды регионов из формы поиска на главной; сопоставляются с текстом поля location.
-REGION_KEYWORDS = {
-    "moscow": ("Москва", "Московская"),
-    "spb": ("Санкт-Петербург", "Петербург", "Ленинградская"),
-    "nk": ("Нижний Новгород", "Нижегородская"),
-}
+from .regions import REGION_KEYWORDS, REGION_NAME_KEYWORDS
 
 
 def apply_region_filter(queryset, region):
-    if region not in REGION_KEYWORDS and region != "other":
-        raise ValidationError({"region": "Неизвестный регион."})
-    if region == "other":
+    normalized_region = region.casefold()
+    if normalized_region == "other":
         for keywords in REGION_KEYWORDS.values():
             for keyword in keywords:
                 queryset = queryset.exclude(location__icontains=keyword)
         return queryset
+    keywords = REGION_KEYWORDS.get(normalized_region)
+    if keywords is None:
+        keywords = REGION_NAME_KEYWORDS.get(normalized_region)
+    if keywords is None:
+        return queryset.filter(location__icontains=region)
     region_filter = Q()
-    for keyword in REGION_KEYWORDS[region]:
+    for keyword in keywords:
         region_filter |= Q(location__icontains=keyword)
     return queryset.filter(region_filter)
 

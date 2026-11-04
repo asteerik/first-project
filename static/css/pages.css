@@ -51,10 +51,40 @@
 .empty-state {
     padding: 40px 20px;
     border: 1px dashed var(--line);
-    border-radius: 10px;
+    border-radius: var(--card-radius);
     background: var(--paper);
     color: var(--muted);
     text-align: center;
+}
+
+.resume-empty-state {
+    max-width: 700px;
+    margin-inline: auto;
+    padding: 52px 24px;
+}
+
+.resume-empty-state__icon {
+    display: grid;
+    width: 56px;
+    height: 56px;
+    place-items: center;
+    margin: 0 auto 16px;
+    border: 1px solid var(--gold-200);
+    border-radius: 50%;
+    color: var(--gold-500);
+    font-size: 23px;
+}
+
+.resume-empty-state h2 {
+    margin: 0 0 8px;
+    color: var(--green-950);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: clamp(22px, 3vw, 28px);
+}
+
+.resume-empty-state p {
+    margin: 0 0 22px;
+    color: var(--muted);
 }
 
 .pagination {
@@ -77,9 +107,9 @@
     margin-inline: auto;
     padding: 30px;
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: var(--card-radius);
     background: var(--paper);
-    box-shadow: 0 5px 16px rgba(27, 49, 39, 0.04);
+    box-shadow: 0 8px 24px rgba(27, 49, 39, 0.035);
 }
 
 .vacancy-detail h1 {
@@ -114,9 +144,9 @@
     margin-inline: auto;
     padding: 30px;
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: var(--card-radius);
     background: var(--paper);
-    box-shadow: 0 5px 16px rgba(27, 49, 39, 0.04);
+    box-shadow: 0 8px 24px rgba(27, 49, 39, 0.035);
 }
 
 .form-card--wide {
@@ -148,8 +178,8 @@
     width: 100%;
     padding: 11px 12px;
     border: 1px solid var(--line);
-    border-radius: 8px;
-    background: #fff;
+    border-radius: var(--control-radius);
+    background: var(--input-surface);
     color: var(--ink);
     font-size: 14px;
 }
@@ -209,7 +239,7 @@
     margin: 0;
     padding: 12px 16px;
     border: 1px solid var(--gold-200);
-    border-radius: 8px;
+    border-radius: var(--control-radius);
     background: var(--paper);
     color: var(--green-900);
     font-size: 14px;
@@ -246,7 +276,7 @@
     gap: 16px;
     padding: 16px 20px;
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: var(--control-radius);
     background: var(--paper);
     flex-wrap: wrap;
 }
@@ -285,4 +315,29 @@
 .status-badge--rejected {
     color: #9b2c2c;
     border-color: #9b2c2c;
+}
+
+html[data-theme="dark"] .form-field label,
+html[data-theme="dark"] .back-link,
+html[data-theme="dark"] .pagination a,
+html[data-theme="dark"] .dashboard-actions a,
+html[data-theme="dark"] .dashboard-actions button,
+html[data-theme="dark"] .flash {
+    color: var(--green-900);
+}
+
+html[data-theme="dark"] .empty-state,
+html[data-theme="dark"] .dashboard-item,
+html[data-theme="dark"] .vacancy-detail,
+html[data-theme="dark"] .form-card {
+    background: var(--paper);
+    color: var(--ink);
+}
+
+html[data-theme="dark"] .form-field input[type="file"] {
+    color: var(--ink);
+}
+
+html[data-theme="dark"] .form-submit:hover {
+    background: var(--green-950);
 }

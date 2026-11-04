@@ -254,9 +254,44 @@ class RecruitmentApiTests(TestCase):
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get("/api/vacancies/?region=moscow").data["count"], 1)
         self.assertEqual(self.client.get("/api/vacancies/?region=spb").data["count"], 0)
+        self.assertEqual(self.client.get("/api/vacancies/?region=saint-petersburg").data["count"], 0)
         self.assertEqual(self.client.get("/api/vacancies/?region=other").data["count"], 0)
-        self.assertEqual(self.client.get("/api/vacancies/?region=mars").status_code, 400)
+        self.assertEqual(self.client.get("/api/vacancies/?region=mars").data["count"], 0)
         self.assertEqual(self.client.get("/api/vacancies/?category=prihod").data["count"], 1)
+
+        self.vacancy.location = "Краснодар"
+        self.vacancy.save(update_fields=["location"])
+        self.assertEqual(self.client.get("/api/vacancies/?region=krasnodar").data["count"], 1)
+        self.assertEqual(self.client.get("/api/vacancies/?region=Краснодарский%20край").data["count"], 1)
+
+    def test_region_suggestions_and_primary_categories_are_available_in_site_filters(self):
+        response = self.client.get("/vacancies/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Республика Татарстан")
+        self.assertContains(response, "Краснодарский край")
+        self.assertContains(response, 'name="region"')
+        self.assertContains(response, "<datalist", html=False)
+        self.assertContains(response, "Медицина и уход")
+        self.assertContains(response, "Волонтёрство")
+        self.assertEqual(
+            response.context["categories"].filter(
+                slug__in=(
+                    "education",
+                    "social",
+                    "healthcare",
+                    "administration",
+                    "facilities-maintenance",
+                    "catering",
+                    "clergy",
+                    "volunteering",
+                )
+            ).count(),
+            8,
+        )
+
+        homepage = self.client.get("/")
+        self.assertContains(homepage, "Сахалинская область")
+        self.assertContains(homepage, "Медицина и уход")
 
     def test_catalog_pages_show_only_published_vacancies(self):
         self.client.force_authenticate(None)

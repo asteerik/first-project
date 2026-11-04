@@ -8,10 +8,18 @@
     --gold-200: #e5dcc7;
     --cream: #f6f6f0;
     --paper: #fffefa;
+    --input-surface: #fff;
+    --surface-tint: #eeeee3;
+    --section-surface: #f7f7f1;
+    --header-surface: rgba(250, 250, 245, 0.97);
+    --surface-hover: rgba(255, 255, 255, 0.65);
     --ink: #20342e;
     --muted: #6e7c73;
     --line: #e4e6de;
-    --shadow: 0 16px 42px rgba(27, 49, 39, 0.1);
+    --button-ink: #fff;
+    --shadow: 0 18px 48px rgba(27, 49, 39, 0.08);
+    --card-radius: 16px;
+    --control-radius: 11px;
     font-family: "DM Sans", "Segoe UI", sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -30,6 +38,7 @@ body {
     margin: 0;
     background: var(--cream);
     color: var(--ink);
+    transition: background-color 220ms ease, color 220ms ease;
 }
 
 body,
@@ -95,8 +104,9 @@ svg {
 .site-header {
     position: relative;
     z-index: 5;
-    background: rgba(250, 250, 245, 0.97);
-    box-shadow: 0 1px 0 rgba(26, 55, 45, 0.07);
+    background: var(--header-surface);
+    box-shadow: 0 1px 0 rgba(26, 55, 45, 0.06);
+    backdrop-filter: blur(14px);
 }
 
 .header-inner {
@@ -143,7 +153,7 @@ svg {
 }
 
 .brand-tagline {
-    color: #64746b;
+    color: var(--muted);
     font-size: 11px;
     letter-spacing: 0.01em;
 }
@@ -161,7 +171,7 @@ svg {
 .nav-link {
     position: relative;
     padding-block: 9px;
-    color: #495c53;
+    color: var(--muted);
     font-size: 13px;
     text-decoration: none;
     transition: color 180ms ease;
@@ -195,6 +205,109 @@ svg {
     gap: 20px;
 }
 
+.user-menu {
+    position: relative;
+}
+
+.user-menu__trigger {
+    display: flex;
+    max-width: 260px;
+    min-height: 42px;
+    align-items: center;
+    gap: 8px;
+    color: var(--green-900);
+    cursor: pointer;
+    list-style: none;
+}
+
+.user-menu__trigger::-webkit-details-marker {
+    display: none;
+}
+
+.user-menu__avatar {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--gold-500);
+    border-radius: 50%;
+    color: var(--gold-500);
+    font-weight: 700;
+}
+
+.user-menu__name {
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-menu__chevron {
+    color: var(--gold-500);
+    font-size: 18px;
+}
+
+.user-menu__panel {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 10px);
+    right: 0;
+    display: grid;
+    width: min(280px, calc(100vw - 32px));
+    gap: 4px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--paper);
+    box-shadow: var(--shadow);
+}
+
+.user-menu__panel a,
+.user-menu__theme,
+.user-menu__logout {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    text-decoration: none;
+}
+
+.user-menu__panel a:hover,
+.user-menu__theme:hover,
+.user-menu__logout:hover {
+    background: var(--cream);
+}
+
+.user-menu__heading {
+    margin: 4px 12px 2px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.user-menu__panel form {
+    margin: 0;
+}
+
+.user-menu__theme,
+.user-menu__logout {
+    cursor: pointer;
+}
+
+.user-menu__logout {
+    border-top: 1px solid var(--line);
+}
+
 .login-link {
     display: inline-flex;
     align-items: center;
@@ -225,9 +338,9 @@ svg {
     justify-content: center;
     gap: 10px;
     border: 1px solid transparent;
-    border-radius: 7px;
+    border-radius: var(--control-radius);
     background: var(--green-800);
-    color: #fff;
+    color: var(--button-ink);
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
@@ -239,7 +352,7 @@ svg {
 .button:hover {
     transform: translateY(-2px);
     background: var(--green-950);
-    box-shadow: 0 9px 22px rgba(18, 54, 43, 0.2);
+    box-shadow: 0 10px 24px rgba(18, 54, 43, 0.15);
 }
 
 .button:active {
@@ -351,8 +464,8 @@ svg {
     align-items: center;
     gap: 3px;
     padding: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.78);
-    border-radius: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.62);
+    border-radius: 15px;
     background: var(--paper);
     box-shadow: 0 15px 38px rgba(12, 29, 23, 0.24);
 }
@@ -387,7 +500,7 @@ svg {
     border: 0;
     outline: 0;
     background: transparent;
-    color: #354840;
+    color: var(--ink);
     font-size: 12px;
 }
 
@@ -493,84 +606,6 @@ svg {
     font-style: normal;
 }
 
-.hero-controls {
-    position: absolute;
-    bottom: 27px;
-    left: max(32px, calc((100% - 1180px) / 2));
-    display: flex;
-    align-items: center;
-    gap: 11px;
-}
-
-.slider-arrow,
-.slider-dot {
-    display: grid;
-    flex: 0 0 auto;
-    place-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.52);
-    background: rgba(17, 44, 35, 0.2);
-    color: #fff;
-    cursor: pointer;
-    transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
-}
-
-.slider-arrow {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-}
-
-.slider-arrow:hover {
-    transform: scale(1.08);
-    border-color: #fff;
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.slider-arrow svg {
-    width: 17px;
-    height: 17px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.8;
-}
-
-.slider-dots {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-
-.slider-dot {
-    position: relative;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-}
-
-.slider-dot::before {
-    width: 8px;
-    height: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.75);
-    border-radius: 99px;
-    background: rgba(17, 44, 35, 0.2);
-    content: "";
-    transition: width 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
-}
-
-.slider-dot:hover::before {
-    transform: scale(1.2);
-}
-
-.slider-dot.is-active::before {
-    width: 22px;
-    border-color: var(--gold-200);
-    background: var(--gold-200);
-}
-
 .photo-credit {
     position: absolute;
     right: max(32px, calc((100% - 1180px) / 2));
@@ -597,12 +632,13 @@ svg {
     background:
         radial-gradient(ellipse at 2% 100%, rgba(196, 180, 143, 0.13), transparent 25%),
         radial-gradient(ellipse at 98% 0%, rgba(196, 180, 143, 0.1), transparent 23%),
-        #f7f7f1;
+        var(--section-surface);
 }
 
 .pathways-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .pathway-card {
@@ -611,28 +647,26 @@ svg {
     min-height: 218px;
     flex-direction: column;
     align-items: center;
-    padding: 4px 27px 19px;
+    padding: 20px 20px 19px;
+    border: 1px solid var(--line);
+    border-radius: var(--card-radius);
+    background: var(--paper);
     color: var(--ink);
     text-align: center;
     text-decoration: none;
-    transition: background-color 180ms ease, transform 180ms ease;
+    box-shadow: 0 8px 24px rgba(27, 49, 39, 0.035);
+    transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
-.pathway-card + .pathway-card::before {
-    position: absolute;
-    top: 45px;
-    bottom: 27px;
-    left: 0;
-    width: 1px;
-    background: linear-gradient(transparent, var(--line) 22%, var(--line) 78%, transparent);
-    content: "";
+.pathways .pathways-grid .pathway-card::before {
+    display: none;
 }
 
 .pathway-card:hover {
     z-index: 1;
-    transform: translateY(-4px);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.65);
+    transform: translateY(-3px);
+    background: var(--surface-hover);
+    box-shadow: var(--shadow);
 }
 
 .pathway-icon {
@@ -644,7 +678,7 @@ svg {
     margin-bottom: 12px;
     border: 1px solid rgba(178, 146, 85, 0.15);
     border-radius: 50%;
-    background: #eeeee3;
+    background: var(--surface-tint);
     color: var(--green-800);
     transition: transform 220ms ease, background-color 220ms ease, color 220ms ease;
 }
@@ -652,7 +686,7 @@ svg {
 .pathway-card:hover .pathway-icon {
     transform: translateY(-2px) rotate(-4deg);
     background: var(--green-800);
-    color: #fff;
+    color: var(--button-ink);
 }
 
 .pathway-icon svg {
@@ -714,7 +748,7 @@ svg {
     gap: 12px;
     margin: 1px auto 0;
     padding-top: 15px;
-    color: #748075;
+    color: var(--muted);
     font-family: "Playfair Display", Georgia, serif;
     font-size: 12px;
     text-align: center;
@@ -777,9 +811,9 @@ svg {
 .vacancy-card {
     padding: 21px;
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: var(--card-radius);
     background: var(--paper);
-    box-shadow: 0 5px 16px rgba(27, 49, 39, 0.04);
+    box-shadow: 0 8px 24px rgba(27, 49, 39, 0.035);
     transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
@@ -866,6 +900,97 @@ svg {
     white-space: nowrap;
 }
 
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --green-950: #111713;
+    --green-900: #eee5cf;
+    --green-800: #d6b96f;
+    --green-700: #e2c77f;
+    --gold-500: #d6b96f;
+    --gold-200: #54482e;
+    --cream: #121815;
+    --paper: #1b221e;
+    --input-surface: #202923;
+    --surface-tint: #252b24;
+    --section-surface: #151c18;
+    --header-surface: rgba(18, 24, 21, 0.96);
+    --surface-hover: #202923;
+    --ink: #f2efe7;
+    --muted: #b2b5a9;
+    --line: #343e37;
+    --button-ink: #17160f;
+    --shadow: 0 20px 52px rgba(0, 0, 0, 0.24);
+}
+
+html[data-theme="dark"] .site-header {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+html[data-theme="dark"] .brand,
+html[data-theme="dark"] .nav-link,
+html[data-theme="dark"] .login-link,
+html[data-theme="dark"] .user-menu__trigger,
+html[data-theme="dark"] .nav-link:hover,
+html[data-theme="dark"] .nav-link.is-current,
+html[data-theme="dark"] .section-heading h2,
+html[data-theme="dark"] .pathway-card h2,
+html[data-theme="dark"] .vacancy-card h3,
+html[data-theme="dark"] .vacancy-detail h1,
+html[data-theme="dark"] .vacancy-detail h2,
+html[data-theme="dark"] .form-card h1,
+html[data-theme="dark"] .page-section h1,
+html[data-theme="dark"] .page-section h2,
+html[data-theme="dark"] .skip-link:focus {
+    color: var(--ink);
+}
+
+html[data-theme="dark"] .button {
+    color: #17140c;
+}
+
+html[data-theme="dark"] .button:hover {
+    color: var(--ink);
+}
+
+html[data-theme="dark"] .search-field input,
+html[data-theme="dark"] .search-field select,
+html[data-theme="dark"] .form-field input:not([type="checkbox"]):not([type="file"]),
+html[data-theme="dark"] .form-field select,
+html[data-theme="dark"] .form-field textarea {
+    border-color: var(--line);
+    background: var(--input-surface);
+    color: var(--ink);
+}
+
+html[data-theme="dark"] .search-field input::placeholder {
+    color: var(--muted);
+}
+
+html[data-theme="dark"] .search-field {
+    border-color: var(--line);
+}
+
+html[data-theme="dark"] .pathways {
+    background:
+        radial-gradient(ellipse at 2% 100%, rgba(214, 185, 111, 0.035), transparent 25%),
+        radial-gradient(ellipse at 98% 0%, rgba(214, 185, 111, 0.03), transparent 23%),
+        var(--section-surface);
+}
+
+html[data-theme="dark"] .pathway-card {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme="dark"] .hero-search {
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+html[data-theme="dark"] .flash {
+    border-color: var(--line);
+    background: var(--paper);
+    color: var(--ink);
+}
+
 @media (max-width: 1050px) {
     .header-inner {
         gap: 18px;
@@ -881,6 +1006,10 @@ svg {
 
     .header-actions {
         gap: 14px;
+    }
+
+    .user-menu__name {
+        max-width: 150px;
     }
 
     .hero-quote {
@@ -938,9 +1067,9 @@ svg {
         justify-self: start;
     }
 
-    .pathways-grid {
+    .pathways .pathways-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        row-gap: 8px;
+        gap: 10px;
     }
 
     .pathway-card:nth-child(3)::before {
@@ -972,6 +1101,16 @@ svg {
 
     .header-actions {
         gap: 10px;
+    }
+
+    .user-menu__trigger {
+        max-width: 150px;
+        gap: 5px;
+    }
+
+    .user-menu__name {
+        max-width: 78px;
+        font-size: 11px;
     }
 
     .login-link {
@@ -1048,11 +1187,6 @@ svg {
         margin-top: 12px;
     }
 
-    .hero-controls {
-        bottom: 34px;
-        left: 18px;
-    }
-
     .photo-credit {
         right: 18px;
         bottom: 12px;
@@ -1066,27 +1200,14 @@ svg {
         padding-top: 22px;
     }
 
-    .pathways-grid {
+    .pathways .pathways-grid {
         width: min(100% - 24px, 460px);
-        gap: 3px;
+        gap: 8px;
     }
 
     .pathway-card {
         min-height: 206px;
         padding: 8px 11px 15px;
-    }
-
-    .pathway-card + .pathway-card::before {
-        top: 43px;
-        bottom: 21px;
-    }
-
-    .pathway-card:nth-child(3)::before {
-        display: block;
-    }
-
-    .pathway-card:nth-child(odd)::before {
-        display: none;
     }
 
     .pathway-icon {

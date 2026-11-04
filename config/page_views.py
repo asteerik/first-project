@@ -1,6 +1,7 @@
 from django.views.generic import TemplateView
 
-from jobs.models import Vacancy
+from jobs.models import Category, Vacancy
+from jobs.regions import REGION_SUGGESTIONS
 
 
 class HomeView(TemplateView):
@@ -11,6 +12,8 @@ class HomeView(TemplateView):
         context["vacancies"] = Vacancy.objects.filter(status=Vacancy.Status.APPROVED).select_related(
             "organization", "category"
         )[:6]
+        context["region_suggestions"] = REGION_SUGGESTIONS
+        context["categories"] = Category.objects.filter(is_active=True)
         return context
 
 

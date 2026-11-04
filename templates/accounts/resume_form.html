@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Изменить резюме{% else %}Новое резюме{% endif %} — Работа для Души{% endblock %}
+
+{% block content %}
+<section class="page-section container">
+    <div class="form-card form-card--wide">
+        <h1>{% if object %}Изменить резюме{% else %}Новое резюме{% endif %}</h1>
+        <p class="form-hint">Выберите, кто сможет видеть резюме. По умолчанию оно доступно только вам.</p>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% include "accounts/_form_fields.html" %}
+            <p class="form-hint">Файл резюме: PDF или DOCX, не более 5 МБ.</p>
+            <button class="button form-submit" type="submit">Сохранить</button>
+            <a class="back-link" href="{% url 'accounts:resumes' %}">Вернуться к моим резюме</a>
+        </form>
+    </div>
+</section>
+{% endblock %}

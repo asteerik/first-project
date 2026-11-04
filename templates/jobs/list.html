@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Вакансии — Ковчег Труда{% endblock %}
+{% block title %}Вакансии — Работа для Души{% endblock %}
 
 {% block content %}
 <section class="page-hero">
@@ -14,12 +14,10 @@
             </label>
             <label class="search-field">
                 <span class="visually-hidden">Регион</span>
-                <select name="region" aria-label="Регион">
-                    <option value="">Все регионы</option>
-                    {% for code, title in regions %}
-                    <option value="{{ code }}"{% if code == region %} selected{% endif %}>{{ title }}</option>
-                    {% endfor %}
-                </select>
+                <input type="search" name="region" value="{{ region }}" list="region-suggestions" placeholder="Регион или город" aria-label="Регион или город" autocomplete="off">
+                <datalist id="region-suggestions">
+                    {% for suggestion in region_suggestions %}<option value="{{ suggestion }}">{% endfor %}
+                </datalist>
             </label>
             <label class="search-field">
                 <span class="visually-hidden">Категория вакансии</span>

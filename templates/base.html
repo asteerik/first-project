@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#f6f6f0">
-    <title>{% block title %}Ковчег Труда{% endblock %}</title>
+    <title>{% block title %}Работа для Души{% endblock %}</title>
+    <script src="{% static 'js/theme.js' %}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +17,7 @@
 
     <header class="site-header">
         <div class="header-inner container">
-            <a class="brand" href="{% url 'homepage' %}" aria-label="Ковчег Труда — главная">
+            <a class="brand" href="{% url 'homepage' %}" aria-label="Работа для Души — главная">
                 <span class="brand-mark" aria-hidden="true">
                     <svg viewBox="0 0 48 48" fill="none">
                         <path d="M24 4v9m-4.5-4.5h9M9 19l15-9 15 9v20H9V19Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -24,7 +25,7 @@
                     </svg>
                 </span>
                 <span class="brand-copy">
-                    <span class="brand-name">Ковчег Труда</span>
+                    <span class="brand-name">Работа для Души</span>
                     <span class="brand-tagline">Работа с верой, для добрых дел</span>
                 </span>
             </a>
@@ -38,11 +39,7 @@
 
             <div class="header-actions">
                 {% if user.is_authenticated %}
-                {% if user.role == 'candidate' %}<a class="login-link" href="{% url 'accounts:resume' %}"><span>Моё резюме</span></a>{% endif %}
-                <form method="post" action="{% url 'accounts:logout' %}">
-                    {% csrf_token %}
-                    <button class="button button--header" type="submit">Выйти</button>
-                </form>
+                {% include "accounts/_user_menu.html" %}
                 {% else %}
                 <a class="login-link" href="{% url 'accounts:login' %}">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0"/></svg>
@@ -65,14 +62,14 @@
 
     <footer class="site-footer">
         <div class="footer-inner container">
-            <a class="footer-brand" href="{% url 'homepage' %}">Ковчег Труда</a>
+            <a class="footer-brand" href="{% url 'homepage' %}">Работа для Души</a>
             <p>Платформа для поиска работы в православных и социально ориентированных организациях</p>
             <nav class="footer-nav" aria-label="Дополнительная навигация">
                 <a href="{% url 'pages:help' %}">Помощь</a>
                 <a href="{% url 'pages:contacts' %}">Контакты</a>
                 <a href="{% url 'pages:about' %}">О проекте</a>
             </nav>
-            <span class="copyright">&copy; 2026 Ковчег Труда</span>
+            <span class="copyright">&copy; 2026 Работа для Души</span>
         </div>
     </footer>
 </body>

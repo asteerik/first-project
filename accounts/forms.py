@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.core.cache import cache
 
-from .models import CandidateProfile
+from .models import CandidateProfile, CandidateResume
 from .serializers import RegistrationSerializer
 
 LOGIN_ATTEMPT_LIMIT = 5
@@ -115,3 +115,36 @@ class ResumeForm(forms.ModelForm):
             if self.old_file_name and self.old_file_name != (profile.resume_file.name or ""):
                 profile.resume_file.storage.delete(self.old_file_name)
         return profile
+
+
+class CandidateResumeForm(forms.ModelForm):
+    class Meta:
+        model = CandidateResume
+        fields = (
+            "title",
+            "desired_position",
+            "experience",
+            "education",
+            "resume_visibility",
+            "resume_file",
+        )
+        widgets = {
+            "experience": forms.Textarea(attrs={"rows": 6}),
+            "education": forms.Textarea(attrs={"rows": 3}),
+            "resume_file": forms.ClearableFileInput(attrs={"accept": ".pdf,.docx"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.old_file_name = self.instance.resume_file.name if self.instance.resume_file else ""
+
+    def save(self, commit=True):
+        resume = super().save(commit=False)
+        if "resume_file" in self.changed_data:
+            uploaded = self.files.get("resume_file")
+            resume.resume_file_name = Path(uploaded.name).name[:255] if uploaded else ""
+        if commit:
+            resume.save()
+            if self.old_file_name and self.old_file_name != (resume.resume_file.name or ""):
+                resume.resume_file.storage.delete(self.old_file_name)
+        return resume

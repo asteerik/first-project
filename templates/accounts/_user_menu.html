@@ -1,0 +1,32 @@
+<details class="user-menu">
+    <summary class="user-menu__trigger">
+        <span class="user-menu__avatar" aria-hidden="true">
+            {% if user.role == 'candidate' %}{{ user.candidate_profile.full_name|default:user.email|first|upper }}{% else %}{{ user.email|first|upper }}{% endif %}
+        </span>
+        <span class="user-menu__name">
+            {% if user.role == 'candidate' %}
+                {{ user.candidate_profile.full_name|default:user.email }}
+            {% elif user.role == 'employer' %}
+                {% with organization=user.organizations.first %}{{ organization.name|default:user.email }}{% endwith %}
+            {% else %}
+                {{ user.email }}
+            {% endif %}
+        </span>
+        <span class="user-menu__chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="user-menu__panel">
+        <p class="user-menu__heading">Настройки профиля</p>
+        {% if user.role == 'candidate' %}
+        <a href="{% url 'accounts:resume_create' %}">Создать резюме</a>
+        <a href="{% url 'accounts:resumes' %}">Мои резюме</a>
+        <a href="{% url 'accounts:resume' %}">Данные профиля</a>
+        {% elif user.role == 'employer' %}
+        <a href="{% url 'jobs:employer_dashboard' %}">Кабинет организации</a>
+        {% endif %}
+        <button class="user-menu__theme" type="button" data-theme-toggle aria-pressed="false">Тёмная тема</button>
+        <form method="post" action="{% url 'accounts:logout' %}">
+            {% csrf_token %}
+            <button class="user-menu__logout" type="submit">Выйти из аккаунта</button>
+        </form>
+    </div>
+</details>

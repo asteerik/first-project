@@ -6,17 +6,10 @@ from django.views.generic import TemplateView
 from rest_framework.exceptions import ValidationError
 
 from .models import Category, Vacancy
+from .regions import REGION_SUGGESTIONS
 from .views import apply_region_filter
 
 PAGE_SIZE = 9
-REGIONS = [
-    ("moscow", "Москва"),
-    ("spb", "Санкт-Петербург"),
-    ("nk", "Нижегородская область"),
-    ("other", "Другие регионы"),
-]
-
-
 def published_vacancies():
     return Vacancy.objects.filter(status=Vacancy.Status.APPROVED).select_related("organization", "category")
 
@@ -55,7 +48,7 @@ class VacancyListPage(TemplateView):
             query=query,
             region=region,
             category=category,
-            regions=REGIONS,
+            region_suggestions=REGION_SUGGESTIONS,
             categories=Category.objects.filter(is_active=True),
             filter_query=extra_params.urlencode(),
         )
