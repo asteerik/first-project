@@ -4,16 +4,23 @@
 
 {% block content %}
 <section class="page-section container">
-    <div class="form-card form-card--wide">
-        <h1>{% if object %}Изменить резюме{% else %}Новое резюме{% endif %}</h1>
-        <p class="form-hint">Выберите, кто сможет видеть резюме. По умолчанию оно доступно только вам.</p>
-        <form method="post" enctype="multipart/form-data">
+    <div class="resume-form-card">
+        <div class="resume-form-heading">
+            <p class="eyebrow resume-form-heading__eyebrow">Работа для Души</p>
+            <h1>{% if object %}Изменить резюме{% else %}Создать резюме{% endif %}</h1>
+            <p>Заполните основные сведения, опыт и образование. Резюме будет видно только вам, пока не измените настройки видимости.</p>
+        </div>
+        <form class="resume-form" method="post" enctype="multipart/form-data" data-resume-form>
             {% csrf_token %}
-            {% include "accounts/_form_fields.html" %}
-            <p class="form-hint">Файл резюме: PDF или DOCX, не более 5 МБ.</p>
-            <button class="button form-submit" type="submit">Сохранить</button>
-            <a class="back-link" href="{% url 'accounts:resumes' %}">Вернуться к моим резюме</a>
+            {% include "accounts/_resume_form_fields.html" %}
+            <div class="resume-save-bar">
+                <a class="back-link" href="{% url 'accounts:resumes' %}">Вернуться к моим резюме</a>
+                <button class="button button--draft" type="submit" name="save_as_draft" value="1">Сохранить черновик</button>
+                <button class="button resume-save-button" type="submit">Сохранить резюме</button>
+            </div>
         </form>
     </div>
 </section>
+{% load static %}
+<script src="{% static 'js/resume-form.js' %}" defer></script>
 {% endblock %}

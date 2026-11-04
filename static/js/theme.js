@@ -16,12 +16,14 @@
         }
         document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
             button.setAttribute("aria-pressed", String(value === "dark"));
+            button.textContent = value === "dark" ? "Светлая тема" : "Тёмная тема";
         });
     }
 
     applyTheme(theme);
 
     document.addEventListener("DOMContentLoaded", () => {
+        applyTheme(theme);
         document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
             button.addEventListener("click", () => {
                 theme = root.dataset.theme === "dark" ? "light" : "dark";

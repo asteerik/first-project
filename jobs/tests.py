@@ -334,17 +334,26 @@ class RecruitmentApiTests(TestCase):
         self.assertEqual(user.role, User.Role.CANDIDATE)
 
         form_data = {
-            "full_name": "Иван Иванов",
-            "phone": "+7 900 000-00-00",
+            "surname": "Иванов",
+            "first_name": "Иван",
+            "patronymic": "",
+            "phone": "+7 (900) 000-00-00",
             "location": "Москва",
             "desired_position": "Регент",
             "experience": "5 лет",
             "education": "",
-            "resume_visibility": "private",
+            "resume_visibility": "public",
         }
         bad = web.post("/resume/", {**form_data, "resume_file": SimpleUploadedFile("cv.exe", b"MZ")})
         self.assertEqual(bad.status_code, 200)
-        saved = web.post("/resume/", {**form_data, "resume_file": SimpleUploadedFile("cv.pdf", b"%PDF-1.4 x")})
+        saved = web.post(
+            "/resume/",
+            {
+                **form_data,
+                "resume_file": SimpleUploadedFile("cv.pdf", b"%PDF-1.4 x"),
+                "save_as_draft": "1",
+            },
+        )
         self.assertRedirects(saved, "/", fetch_redirect_response=False)
         profile = user.candidate_profile
         profile.refresh_from_db()

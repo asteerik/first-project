@@ -1,0 +1,20 @@
+{% load resume_format %}
+<div class="form-field resume-field resume-field--full{% if field.errors %} has-error{% endif %}" data-rich-editor>
+    <label for="{{ field.name }}-editor">{{ field.label }}</label>
+    <div class="rich-editor">
+        <div class="rich-editor__toolbar" role="toolbar" aria-label="Форматирование текста">
+            <button type="button" data-command="bold" aria-label="Жирный текст"><strong>B</strong></button>
+            <button type="button" data-command="italic" aria-label="Курсив"><em>I</em></button>
+            <button type="button" data-command="insertUnorderedList" aria-label="Маркированный список">• Список</button>
+            <button type="button" data-command="createLink" aria-label="Добавить ссылку">Ссылка</button>
+        </div>
+        <div id="{{ field.name }}-editor" class="rich-editor__surface" contenteditable="true" role="textbox"
+             aria-multiline="true" aria-label="{{ field.label }}" data-rich-surface>{{ field.value|default_if_none:""|safe_resume_text }}</div>
+        <textarea name="{{ field.html_name }}" id="{{ field.id_for_label }}" hidden data-rich-source>{{ field.value|default_if_none:"" }}</textarea>
+    </div>
+    <div class="resume-field__meta">
+        {% if field.help_text %}<p class="form-hint">{{ field.help_text }}</p>{% endif %}
+        <span class="character-count" data-character-count>0 символов</span>
+    </div>
+    {% for error in field.errors %}<p class="form-error" role="alert">{{ error }}</p>{% endfor %}
+</div>
