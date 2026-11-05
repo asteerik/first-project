@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from accounts.models import Organization, User
+from accounts.models import CandidateResume, Organization, User
 from jobs.models import Application, Category, ModerationLog, Vacancy
 
 
@@ -113,6 +113,54 @@ class RecruitmentApiTests(TestCase):
             response.data["results"][0]["candidate"]["experience"],
             "Чувствительные сведения резюме",
         )
+
+    def test_application_status_transitions_are_limited_by_role(self):
+        candidate = self.register(
+            "status-candidate@example.test",
+            "candidate",
+            full_name="Соискатель статусов",
+        )
+        self.client.force_authenticate(candidate)
+        created = self.client.post(
+            "/api/applications/",
+            {"vacancy_id": self.vacancy.pk},
+            format="json",
+        )
+        self.assertEqual(created.status_code, 201, created.data)
+        application_id = created.data["id"]
+        self.assertEqual(
+            self.client.patch(
+                f"/api/applications/{application_id}/",
+                {"status": "accepted"},
+                format="json",
+            ).status_code,
+            403,
+        )
+
+        self.client.force_authenticate(self.employer)
+        invited = self.client.patch(
+            f"/api/applications/{application_id}/",
+            {"status": "invited"},
+            format="json",
+        )
+        self.assertEqual(invited.status_code, 200, invited.data)
+        self.assertEqual(
+            self.client.patch(
+                f"/api/applications/{application_id}/",
+                {"status": "accepted"},
+                format="json",
+            ).status_code,
+            400,
+        )
+
+        self.client.force_authenticate(candidate)
+        accepted = self.client.patch(
+            f"/api/applications/{application_id}/",
+            {"status": "accepted"},
+            format="json",
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.data)
+        self.assertEqual(accepted.data["status"], Application.Status.ACCEPTED)
 
     def test_favorites_are_private_unique_and_candidate_only(self):
         candidate = self.register("fav@example.test", "candidate", full_name="Соискатель")
@@ -292,6 +340,8 @@ class RecruitmentApiTests(TestCase):
         homepage = self.client.get("/")
         self.assertContains(homepage, "Сахалинская область")
         self.assertContains(homepage, "Медицина и уход")
+        self.assertContains(homepage, 'class="js-custom-select"')
+        self.assertContains(homepage, "js/custom-select.js")
 
     def test_catalog_pages_show_only_published_vacancies(self):
         self.client.force_authenticate(None)
@@ -308,11 +358,177 @@ class RecruitmentApiTests(TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, "Помощник по хозяйству")
         self.assertNotContains(page, "Черновик не должен быть виден")
-        self.assertContains(self.client.get("/vacancies/?region=spb"), "вакансий не найдено")
+        self.assertContains(self.client.get("/vacancies/?region=spb"), "По выбранным условиям вакансий пока нет.")
         self.assertEqual(self.client.get("/vacancies/?region=mars&page=abc").status_code, 200)
         self.assertEqual(self.client.get(f"/vacancies/{self.vacancy.pk}/").status_code, 200)
+        detail = self.client.get(f"/vacancies/{self.vacancy.pk}/")
+        self.assertContains(detail, 'aria-label="Хлебные крошки"')
+        self.assertContains(detail, 'aria-label="Условия вакансии"')
+        self.assertContains(detail, "Откликнуться на вакансию")
+        self.assertContains(detail, '<ul class="vacancy-requirements">', html=False)
         draft = Vacancy.objects.get(title="Черновик не должен быть виден")
         self.assertEqual(self.client.get(f"/vacancies/{draft.pk}/").status_code, 404)
+
+    def test_candidate_can_send_a_web_application_once(self):
+        from django.test import Client
+
+        candidate = self.register(
+            "web-candidate@example.test",
+            "candidate",
+            full_name="Соискатель",
+        )
+        web = Client()
+        response = web.get(f"/vacancies/{self.vacancy.pk}/apply/")
+        self.assertRedirects(
+            response,
+            f"/login/?next=/vacancies/{self.vacancy.pk}/apply/",
+            fetch_redirect_response=False,
+        )
+
+        web.force_login(candidate)
+        empty_dialog = web.get(f"/vacancies/{self.vacancy.pk}/?apply=1")
+        self.assertContains(empty_dialog, "Чтобы откликнуться, сначала создайте резюме.")
+        self.assertContains(empty_dialog, "Создать новое резюме")
+        resume = CandidateResume.objects.create(
+            candidate=candidate.candidate_profile,
+            title="Резюме редактора",
+            desired_position="Редактор",
+        )
+        another_candidate = self.register(
+            "another-candidate@example.test",
+            "candidate",
+            full_name="Другой соискатель",
+        )
+        another_resume = CandidateResume.objects.create(
+            candidate=another_candidate.candidate_profile,
+            title="Чужое резюме",
+        )
+        response = web.get(f"/vacancies/{self.vacancy.pk}/apply/")
+        self.assertRedirects(
+            response,
+            f"/vacancies/{self.vacancy.pk}/?apply=1",
+            fetch_redirect_response=False,
+        )
+        detail = web.get(f"/vacancies/{self.vacancy.pk}/?apply=1")
+        self.assertContains(detail, "Сопроводительное письмо")
+        self.assertContains(detail, "Резюме редактора")
+        self.assertContains(detail, "Создать новое резюме")
+        self.assertNotContains(detail, "Чужое резюме")
+        response = web.post(
+            f"/vacancies/{self.vacancy.pk}/apply/",
+            {
+                "resume": another_resume.pk,
+                "cover_letter": "Мне интересна работа в вашей организации.",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Application.objects.filter(candidate=candidate.candidate_profile).exists())
+        response = web.post(
+            f"/vacancies/{self.vacancy.pk}/apply/",
+            {
+                "resume": resume.pk,
+                "cover_letter": "Мне интересна работа в вашей организации.",
+            },
+        )
+        self.assertRedirects(response, f"/vacancies/{self.vacancy.pk}/")
+        application = Application.objects.get(
+            vacancy=self.vacancy,
+            candidate=candidate.candidate_profile,
+        )
+        self.assertEqual(application.resume, resume)
+        self.assertEqual(application.cover_letter, "Мне интересна работа в вашей организации.")
+
+        response = web.get(f"/vacancies/{self.vacancy.pk}/")
+        self.assertContains(response, "Вы уже откликнулись на эту вакансию.")
+        self.assertNotContains(response, "Откликнуться на вакансию")
+
+    def test_employer_can_process_applications_and_candidate_can_answer_invitation(self):
+        from django.test import Client
+
+        candidate = self.register(
+            "pipeline-candidate@example.test",
+            "candidate",
+            full_name="Кандидат процесса",
+        )
+        resume = CandidateResume.objects.create(
+            candidate=candidate.candidate_profile,
+            title="Резюме кандидата",
+            desired_position="Помощник",
+            experience="Опыт работы",
+        )
+        application = Application.objects.create(
+            vacancy=self.vacancy,
+            candidate=candidate.candidate_profile,
+            resume=resume,
+            cover_letter="Буду рад присоединиться.",
+        )
+
+        employer_web = Client()
+        employer_web.force_login(self.employer)
+        dashboard = employer_web.get("/employer/")
+        self.assertContains(dashboard, "Отклики на вакансии")
+        self.assertContains(dashboard, "Непросмотренные")
+        self.assertContains(dashboard, "Кандидат процесса")
+        self.assertContains(dashboard, "Помощник")
+
+        self.assertRedirects(
+            employer_web.post(
+                f"/employer/applications/{application.pk}/status/",
+                {"status": "reviewed"},
+            ),
+            "/employer/?applications=reviewed",
+            fetch_redirect_response=False,
+        )
+        application.refresh_from_db()
+        self.assertEqual(application.status, Application.Status.REVIEWED)
+
+        self.assertRedirects(
+            employer_web.post(
+                f"/employer/applications/{application.pk}/status/",
+                {"status": "invited"},
+            ),
+            "/employer/?applications=invited",
+            fetch_redirect_response=False,
+        )
+        application.refresh_from_db()
+        self.assertEqual(application.status, Application.Status.INVITED)
+
+        candidate_web = Client()
+        candidate_web.force_login(candidate)
+        my_applications = candidate_web.get("/my-applications/")
+        self.assertContains(my_applications, "Работодатель приглашает вас")
+        self.assertEqual(
+            candidate_web.post(
+                f"/my-applications/{application.pk}/response/",
+                {"status": "accepted"},
+            ).status_code,
+            302,
+        )
+        application.refresh_from_db()
+        self.assertEqual(application.status, Application.Status.ACCEPTED)
+        self.assertContains(employer_web.get("/employer/?applications=accepted"), "Кандидат процесса")
+
+        other_employer = self.register(
+            "unrelated-employer@example.test",
+            "employer",
+            organization_name="Другая организация",
+        )
+        other_web = Client()
+        other_web.force_login(other_employer)
+        self.assertEqual(
+            other_web.post(
+                f"/employer/applications/{application.pk}/status/",
+                {"status": "rejected"},
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            candidate_web.post(
+                f"/my-applications/{application.pk}/response/",
+                {"status": "rejected"},
+            ).status_code,
+            404,
+        )
 
     def test_web_registration_resume_form_and_login_flow(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -388,6 +604,10 @@ class RecruitmentApiTests(TestCase):
         self.assertEqual(user.role, User.Role.EMPLOYER)
         self.assertEqual(user.organizations.get().name, "Храм Тест")
 
+        form_page = web.get("/employer/vacancies/new/")
+        self.assertContains(form_page, 'class="js-custom-select"')
+        self.assertContains(form_page, 'data-grouped-number="true"')
+
         data = {
             "category": self.category.pk,
             "title": "Звонарь",
@@ -402,10 +622,16 @@ class RecruitmentApiTests(TestCase):
         self.assertEqual(bad.status_code, 200)
         self.assertFalse(Vacancy.objects.filter(title="Звонарь").exists())
 
-        data.update(salary_max="60000", description="Нужен звонарь для утренних и вечерних служб в храме города.")
+        data.update(
+            salary_min="50 000",
+            salary_max="60 000",
+            description="Нужен звонарь для утренних и вечерних служб в храме города.",
+        )
         self.assertEqual(web.post("/employer/vacancies/new/", data).status_code, 302)
         vacancy = Vacancy.objects.get(title="Звонарь")
         self.assertEqual(vacancy.status, Vacancy.Status.PENDING)
+        self.assertEqual(vacancy.salary_min, 50000)
+        self.assertEqual(vacancy.salary_max, 60000)
         self.assertEqual(vacancy.created_by, user)
         self.assertContains(web.get("/employer/"), "Звонарь")
 

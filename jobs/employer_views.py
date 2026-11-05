@@ -3,13 +3,20 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
 from accounts.models import Organization, User
 
-from .models import Category, Vacancy
+from .models import Application, Category, Vacancy
+
+
+class GroupedIntegerField(forms.IntegerField):
+    def to_python(self, value):
+        if isinstance(value, str):
+            value = value.replace(" ", "").replace("\u00a0", "").replace("\u202f", "")
+        return super().to_python(value)
 
 
 def employer_organizations(user):
@@ -17,6 +24,25 @@ def employer_organizations(user):
 
 
 class VacancyForm(forms.ModelForm):
+    salary_min = GroupedIntegerField(
+        label="Зарплата от, руб.",
+        required=False,
+        min_value=0,
+        max_value=100000000,
+        widget=forms.TextInput(
+            attrs={"inputmode": "numeric", "data-grouped-number": "true"}
+        ),
+    )
+    salary_max = GroupedIntegerField(
+        label="Зарплата до, руб.",
+        required=False,
+        min_value=0,
+        max_value=100000000,
+        widget=forms.TextInput(
+            attrs={"inputmode": "numeric", "data-grouped-number": "true"}
+        ),
+    )
+
     class Meta:
         model = Vacancy
         fields = (
@@ -38,12 +64,15 @@ class VacancyForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = Category.objects.filter(is_active=True)
         self.fields["category"].empty_label = "Выберите категорию"
+        for field_name in ("category", "employment_type"):
+            self.fields[field_name].widget.attrs["class"] = "js-custom-select"
         self.organizations = list(organizations)
         if len(self.organizations) > 1:
             self.fields["organization"] = forms.ModelChoiceField(
                 label="Организация",
                 queryset=Organization.objects.filter(pk__in=[o.pk for o in self.organizations]),
                 initial=self.instance.organization_id or None,
+                widget=forms.Select(attrs={"class": "js-custom-select"}),
             )
             self.order_fields(("organization",))
 
@@ -101,7 +130,63 @@ class EmployerDashboard(EmployerRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["organizations"] = self.organizations
+        applications = (
+            Application.objects.filter(vacancy__organization__in=self.organizations)
+            .select_related("candidate", "vacancy", "resume")
+            .order_by("-created_at")
+        )
+        application_tabs = (
+            ("new", "Непросмотренные", Application.Status.NEW),
+            ("reviewed", "Рассматриваются", Application.Status.REVIEWED),
+            ("invited", "Ждут ответа", Application.Status.INVITED),
+            ("rejected", "Отклонённые", Application.Status.REJECTED),
+            ("accepted", "Принятые", Application.Status.ACCEPTED),
+            ("withdrawn", "Отозванные", Application.Status.WITHDRAWN),
+        )
+        context["application_tabs"] = [
+            {
+                "key": key,
+                "label": label,
+                "count": applications.filter(status=status).count(),
+            }
+            for key, label, status in application_tabs
+        ]
+        selected_status = self.request.GET.get("applications", "new")
+        status_by_key = {key: status for key, _, status in application_tabs}
+        if selected_status not in status_by_key:
+            selected_status = "new"
+        context["selected_application_status"] = selected_status
+        context["applications"] = applications.filter(status=status_by_key[selected_status])
         return context
+
+
+class EmployerApplicationStatusPage(EmployerRequiredMixin, View):
+    status_transitions = {
+        Application.Status.NEW: {
+            Application.Status.REVIEWED,
+            Application.Status.INVITED,
+            Application.Status.REJECTED,
+        },
+        Application.Status.REVIEWED: {
+            Application.Status.INVITED,
+            Application.Status.REJECTED,
+        },
+    }
+
+    def post(self, request, pk):
+        application = get_object_or_404(
+            Application.objects.select_related("vacancy"),
+            pk=pk,
+            vacancy__organization__in=self.organizations,
+        )
+        new_status = request.POST.get("status")
+        if new_status not in self.status_transitions.get(application.status, set()):
+            messages.error(request, "Это действие недоступно для текущего статуса отклика.")
+            return redirect("jobs:employer_dashboard")
+        application.status = new_status
+        application.save(update_fields=["status", "updated_at"])
+        messages.success(request, "Статус отклика обновлён.")
+        return redirect(f"{reverse('jobs:employer_dashboard')}?applications={new_status}")
 
 
 class VacancyFormMixin(EmployerRequiredMixin):

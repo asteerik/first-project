@@ -8,6 +8,7 @@
     <meta name="description" content="Работа в православных и социально ориентированных организациях. Найдите дело по душе.">
     <title>Работа для Души — работа, которая приносит пользу</title>
     <script src="{% static 'js/theme.js' %}"></script>
+    <script src="{% static 'js/custom-select.js' %}" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -115,16 +116,16 @@
                             {% for suggestion in region_suggestions %}<option value="{{ suggestion }}">{% endfor %}
                         </datalist>
                     </label>
-                    <label class="search-field">
+                    <div class="search-field">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
-                        <span class="visually-hidden">Категория вакансии</span>
-                        <select name="category" aria-label="Категория вакансии">
+                        <label class="visually-hidden" id="home-category-label" for="home-category">Категория вакансии</label>
+                        <select class="js-custom-select" id="home-category" name="category">
                             <option value="">Все категории</option>
                             {% for category in categories %}
                             <option value="{{ category.slug }}">{{ category.name }}</option>
                             {% endfor %}
                         </select>
-                    </label>
+                    </div>
                     <button class="button button--search" type="submit">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
                         <span>Найти работу</span>
@@ -162,7 +163,7 @@
                     <span class="pathway-link">Перейти к вакансиям <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span>
                 </a>
 
-                <a class="pathway-card" href="{% url 'accounts:register_as_seeker' %}">
+                <a class="pathway-card" href="{% if user.is_authenticated and user.role == 'candidate' %}{% url 'accounts:resume_create' %}{% elif not user.is_authenticated %}{% url 'accounts:register_as_seeker' %}?next={% url 'accounts:resume_create' %}{% else %}{% url 'accounts:register_as_seeker' %}{% endif %}">
                     <span class="pathway-icon" aria-hidden="true">
                         <svg viewBox="0 0 32 32"><path d="M8 4h11l7 7v17H8z"/><path d="M19 4v8h7M12 17h10m-10 5h10"/></svg>
                     </span>

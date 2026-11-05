@@ -1,7 +1,7 @@
 from rest_framework import serializers
+from django.urls import reverse
 
-from accounts.models import Organization
-from accounts.models import User
+from accounts.models import CandidateResume, Organization, User
 from accounts.permissions import has_organization_access, user_can_view_resume
 from accounts.serializers import PublicCandidateSerializer, PublicOrganizationSerializer
 from .models import Application, Category, Complaint, Favorite, Vacancy
@@ -86,7 +86,15 @@ class VacancySerializer(serializers.ModelSerializer):
 
 class ApplicationSerializer(serializers.ModelSerializer):
     candidate = serializers.SerializerMethodField()
+    selected_resume = serializers.SerializerMethodField()
     vacancy_title = serializers.CharField(source="vacancy.title", read_only=True)
+    resume_id = serializers.PrimaryKeyRelatedField(
+        source="resume",
+        queryset=CandidateResume.objects.none(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
     vacancy_id = serializers.PrimaryKeyRelatedField(
         source="vacancy",
         queryset=Vacancy.objects.filter(
@@ -104,6 +112,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "vacancy_id",
             "vacancy_title",
             "candidate",
+            "resume_id",
+            "selected_resume",
             "cover_letter",
             "status",
             "created_at",
@@ -111,11 +121,39 @@ class ApplicationSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "vacancy", "vacancy_title", "candidate", "status", "created_at", "updated_at")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if request and request.user.is_authenticated and request.user.role == User.Role.CANDIDATE:
+            self.fields["resume_id"].queryset = CandidateResume.objects.filter(
+                candidate__user=request.user
+            )
+
     def get_candidate(self, application):
         request = self.context.get("request")
         if request and user_can_view_resume(request.user, application.candidate):
             return PublicCandidateSerializer(application.candidate).data
         return {"id": application.candidate_id, "full_name": application.candidate.full_name}
+
+    def get_selected_resume(self, application):
+        resume = application.resume
+        if not resume:
+            return None
+        details = {
+            "id": resume.pk,
+            "title": resume.title,
+            "desired_position": resume.desired_position,
+            "experience": resume.experience,
+            "education": resume.education,
+            "portfolio_url": resume.portfolio_url,
+            "resume_file_name": resume.resume_file_name,
+        }
+        if resume.resume_file:
+            details["download_url"] = reverse(
+                "jobs:application_resume",
+                kwargs={"pk": application.pk},
+            )
+        return details
 
     def validate(self, attrs):
         if self.instance is None:

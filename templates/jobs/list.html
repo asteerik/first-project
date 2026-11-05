@@ -3,51 +3,76 @@
 {% block title %}Вакансии — Работа для Души{% endblock %}
 
 {% block content %}
-<section class="page-hero">
+<section class="catalog-page">
+    <header class="catalog-header container">
+        <p class="catalog-kicker">РАБОТА ДЛЯ ДУШИ <span> / </span> ВАКАНСИИ</p>
+        <div class="catalog-header__copy">
+            <h1>Работа, которая приносит пользу</h1>
+            <p>Выберите дело по душе в православных и социально ориентированных организациях.</p>
+        </div>
+    </header>
+
     <div class="container">
-        <h1>Вакансии</h1>
-        <p>Работа в православных и социально ориентированных организациях.</p>
-        <form class="hero-search" action="{% url 'jobs:list' %}" method="get" role="search">
-            <label class="search-field">
-                <span class="visually-hidden">Должность или ключевое слово</span>
-                <input type="search" name="q" value="{{ query }}" placeholder="Должность или ключевое слово">
+        <form class="catalog-filters" action="{% url 'jobs:list' %}" method="get" role="search">
+            <label class="catalog-filter">
+                <span>Должность или слово</span>
+                <input type="search" name="q" value="{{ query }}" placeholder="Например, педагог">
             </label>
-            <label class="search-field">
-                <span class="visually-hidden">Регион</span>
-                <input type="search" name="region" value="{{ region }}" list="region-suggestions" placeholder="Регион или город" aria-label="Регион или город" autocomplete="off">
+            <label class="catalog-filter">
+                <span>Город или регион</span>
+                <input type="search" name="region" value="{{ region }}" list="region-suggestions" placeholder="Например, Москва" autocomplete="off">
                 <datalist id="region-suggestions">
                     {% for suggestion in region_suggestions %}<option value="{{ suggestion }}">{% endfor %}
                 </datalist>
             </label>
-            <label class="search-field">
-                <span class="visually-hidden">Категория вакансии</span>
-                <select name="category" aria-label="Категория вакансии">
+            <div class="catalog-filter">
+                <label for="catalog-category"><span>Направление</span></label>
+                <select class="js-custom-select" id="catalog-category" name="category">
                     <option value="">Все категории</option>
                     {% for item in categories %}
                     <option value="{{ item.slug }}"{% if item.slug == category %} selected{% endif %}>{{ item.name }}</option>
                     {% endfor %}
                 </select>
-            </label>
-            <button class="button button--search" type="submit"><span>Найти работу</span></button>
+            </div>
+            <div class="catalog-filter-actions">
+                <button class="button catalog-search-button" type="submit">Найти вакансии</button>
+                {% if query or region or category %}
+                <a class="catalog-reset-link" href="{% url 'jobs:list' %}">Сбросить</a>
+                {% endif %}
+            </div>
         </form>
     </div>
-</section>
 
-<section class="page-section container" aria-label="Список вакансий">
-    <p class="results-count">Найдено вакансий: {{ page.paginator.count }}</p>
+<section class="catalog-results container" aria-labelledby="catalog-results-heading">
+    <div class="catalog-results__heading">
+        <h2 id="catalog-results-heading">Открытые позиции</h2>
+        <p class="results-count" role="status" aria-live="polite">
+            Найдено: {{ page.paginator.count }}
+            {% if page.paginator.count and page.paginator.num_pages > 1 %}
+            <span> · показаны {{ page.start_index }}–{{ page.end_index }} из {{ page.paginator.count }}</span>
+            {% endif %}
+        </p>
+    </div>
     {% if page.object_list %}
-    <div class="vacancies-grid">
+    <div class="vacancies-list">
         {% for vacancy in page.object_list %}
-        <article class="vacancy-card">
-            <span class="vacancy-category">{{ vacancy.category.name }}</span>
-            <h3>{{ vacancy.title }}</h3>
-            <p class="vacancy-organization">{{ vacancy.organization.name }}</p>
-            <ul class="vacancy-meta">
-                <li>{{ vacancy.location }}</li>
-                <li>{{ vacancy.get_employment_type_display }}</li>
-            </ul>
-            {% include "jobs/_salary.html" %}
-            <a class="vacancy-link" href="{% url 'jobs:detail' vacancy.id %}">Подробнее <span aria-hidden="true">→</span></a>
+        <article class="vacancy-row">
+            <div class="vacancy-row__section">
+                <span class="vacancy-category">{{ vacancy.category.name }}</span>
+                {% if vacancy.published_at %}<time datetime="{{ vacancy.published_at|date:'c' }}">{{ vacancy.published_at|date:"j E Y" }}</time>{% endif %}
+            </div>
+            <div class="vacancy-row__main">
+                <h3><a href="{% url 'jobs:detail' vacancy.id %}">{{ vacancy.title }}</a></h3>
+                <p class="vacancy-organization">{{ vacancy.organization.name }}</p>
+                <ul class="vacancy-meta">
+                    <li>{{ vacancy.location }}</li>
+                    <li><span class="vacancy-employment">{{ vacancy.get_employment_type_display }}</span></li>
+                </ul>
+            </div>
+            <div class="vacancy-row__aside">
+                {% include "jobs/_salary.html" %}
+                <a class="vacancy-link" href="{% url 'jobs:detail' vacancy.id %}">Подробнее <span aria-hidden="true">→</span></a>
+            </div>
         </article>
         {% endfor %}
     </div>
@@ -60,9 +85,11 @@
     {% endif %}
     {% else %}
     <div class="empty-state">
-        <p>По вашему запросу вакансий не найдено. Попробуйте изменить фильтры.</p>
-        <a class="text-link" href="{% url 'jobs:list' %}">Сбросить фильтры</a>
+        <p>По выбранным условиям вакансий пока нет.</p>
+        <p>Попробуйте изменить город или направление, либо посмотрите все открытые позиции.</p>
+        <a class="text-link" href="{% url 'jobs:list' %}">Показать все вакансии <span aria-hidden="true">→</span></a>
     </div>
     {% endif %}
+</section>
 </section>
 {% endblock %}

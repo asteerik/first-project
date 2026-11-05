@@ -1,0 +1,19 @@
+<form class="application-form" method="post" action="{% url 'jobs:apply' vacancy.id %}">
+    {% csrf_token %}
+    <div class="application-form__field">
+        <label for="{{ form.resume.id_for_label }}">{{ form.resume.label }}</label>
+        {{ form.resume }}
+        {% for error in form.resume.errors %}<p class="form-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    <div class="application-form__field">
+        <label for="{{ form.cover_letter.id_for_label }}">Сопроводительное письмо <span>(необязательно)</span></label>
+        {{ form.cover_letter }}
+        {% for error in form.cover_letter.errors %}<p class="form-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    {% if has_resumes %}
+    <button class="button vacancy-apply-button" type="submit">Отправить отклик</button>
+    {% else %}
+    <p>У вас пока нет сохранённых резюме.</p>
+    {% endif %}
+    <a class="text-link" href="{% url 'accounts:resume_create' %}?next={{ resume_return_url|urlencode }}">Создать новое резюме</a>
+</form>

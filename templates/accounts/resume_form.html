@@ -12,6 +12,7 @@
         </div>
         <form class="resume-form" method="post" enctype="multipart/form-data" data-resume-form>
             {% csrf_token %}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
             {% include "accounts/_resume_form_fields.html" %}
             <div class="resume-save-bar">
                 <a class="back-link" href="{% url 'accounts:resumes' %}">Вернуться к моим резюме</a>

@@ -19,6 +19,7 @@
         {% if user.role == 'candidate' %}
         <a href="{% url 'accounts:resume_create' %}">Создать резюме</a>
         <a href="{% url 'accounts:resumes' %}">Мои резюме</a>
+        <a href="{% url 'jobs:candidate_applications' %}">Мои отклики</a>
         <a href="{% url 'accounts:resume' %}">Данные профиля</a>
         {% elif user.role == 'employer' %}
         <a href="{% url 'jobs:employer_dashboard' %}">Кабинет организации</a>

@@ -3,31 +3,89 @@
 {% block title %}{{ vacancy.title }} — Работа для Души{% endblock %}
 
 {% block content %}
-<section class="page-section container">
-    <a class="back-link" href="{% url 'jobs:list' %}">← Все вакансии</a>
-    <article class="vacancy-detail">
+<section class="page-section container vacancy-detail-page">
+    <nav class="vacancy-breadcrumbs" aria-label="Хлебные крошки">
+        <ol>
+            <li><a href="{% url 'homepage' %}">Главная</a></li>
+            <li><a href="{% url 'jobs:list' %}">Вакансии</a></li>
+            <li><a href="{% url 'jobs:list' %}?category={{ vacancy.category.slug|urlencode }}">{{ vacancy.category.name }}</a></li>
+            <li aria-current="page">{{ vacancy.title }}</li>
+        </ol>
+    </nav>
+
+    <header class="vacancy-detail__header">
         <span class="vacancy-category">{{ vacancy.category.name }}</span>
         <h1>{{ vacancy.title }}</h1>
-        <p class="vacancy-organization">{{ vacancy.organization.name }}</p>
-        <ul class="vacancy-meta">
-            <li>{{ vacancy.location }}</li>
-            <li>{{ vacancy.get_employment_type_display }}</li>
-            {% if vacancy.published_at %}<li>Опубликовано {{ vacancy.published_at|date:"j E Y" }}</li>{% endif %}
-        </ul>
-        {% include "jobs/_salary.html" %}
+        {% if vacancy.published_at %}<p class="vacancy-detail__date">Опубликовано {{ vacancy.published_at|date:"j E Y" }}</p>{% endif %}
+    </header>
 
-        <h2>Описание</h2>
-        <p>{{ vacancy.description|linebreaksbr }}</p>
+    <div class="vacancy-detail-layout">
+        <article class="vacancy-detail__content">
+            <section class="vacancy-detail__section" aria-labelledby="vacancy-description-heading">
+                <h2 id="vacancy-description-heading">Описание</h2>
+                <div class="vacancy-detail__prose">{{ vacancy.description|linebreaks }}</div>
+            </section>
 
-        {% if vacancy.requirements %}
-        <h2>Требования</h2>
-        <p>{{ vacancy.requirements|linebreaksbr }}</p>
-        {% endif %}
+            {% if requirement_lines %}
+            <section class="vacancy-detail__section" aria-labelledby="vacancy-requirements-heading">
+                <h2 id="vacancy-requirements-heading">Требования</h2>
+                <ul class="vacancy-requirements">
+                    {% for requirement in requirement_lines %}<li>{{ requirement }}</li>{% endfor %}
+                </ul>
+            </section>
+            {% endif %}
 
-        {% if vacancy.organization.description %}
-        <h2>Об организации</h2>
-        <p>{{ vacancy.organization.description|linebreaksbr }}</p>
-        {% endif %}
-    </article>
+            {% if vacancy.organization.description %}
+            <section class="vacancy-detail__section" aria-labelledby="vacancy-organization-heading">
+                <h2 id="vacancy-organization-heading">Об организации</h2>
+                <div class="vacancy-detail__prose">{{ vacancy.organization.description|linebreaks }}</div>
+            </section>
+            {% endif %}
+        </article>
+
+        <aside class="vacancy-facts" aria-label="Условия вакансии">
+            <h2>Условия работы</h2>
+            <dl>
+                <div><dt>Организация</dt><dd>{{ vacancy.organization.name }}</dd></div>
+                <div><dt>Город</dt><dd>{{ vacancy.location }}</dd></div>
+                <div><dt>Занятость</dt><dd>{{ vacancy.get_employment_type_display }}</dd></div>
+                {% if vacancy.salary_min or vacancy.salary_max %}
+                <div><dt>Зарплата</dt><dd>{% include "jobs/_salary.html" %}</dd></div>
+                {% endif %}
+            </dl>
+            {% if has_applied %}
+            <p class="vacancy-facts__applied" role="status">Вы уже откликнулись на эту вакансию.</p>
+            {% elif user.is_authenticated and user.role == "candidate" %}
+            <button class="button vacancy-apply-button" type="button" data-open-application-dialog>
+                Откликнуться на вакансию
+            </button>
+            {% else %}
+            <a class="button vacancy-apply-button" href="{% url 'jobs:apply' vacancy.id %}">Откликнуться на вакансию</a>
+            {% endif %}
+        </aside>
+    </div>
+
+    {% if user.is_authenticated and user.role == "candidate" and not has_applied %}
+    <dialog
+        class="application-dialog"
+        aria-labelledby="application-dialog-title"
+        data-application-dialog
+        {% if open_application_dialog %}data-open-on-load="true"{% endif %}>
+        <div class="application-dialog__content">
+            <button class="application-dialog__close" type="button" aria-label="Закрыть окно" data-close-application-dialog>×</button>
+            <p class="catalog-kicker">ОТКЛИК НА ВАКАНСИЮ</p>
+            <h2 id="application-dialog-title">{{ vacancy.title }}</h2>
+            <p class="application-dialog__organization">{{ vacancy.organization.name }} · {{ vacancy.location }}</p>
+            {% if has_resumes %}
+            {% include "jobs/_application_form.html" with form=application_form vacancy=vacancy has_resumes=has_resumes resume_return_url=resume_return_url %}
+            {% else %}
+            <div class="application-dialog__empty">
+                <p>Чтобы откликнуться, сначала создайте резюме.</p>
+                <a class="button vacancy-apply-button" href="{% url 'accounts:resume_create' %}?next={{ resume_return_url|urlencode }}">Создать новое резюме</a>
+            </div>
+            {% endif %}
+        </div>
+    </dialog>
+    {% endif %}
 </section>
 {% endblock %}

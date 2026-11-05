@@ -15,6 +15,102 @@
     </p>
     {% endfor %}
 
+    <section class="employer-applications" aria-labelledby="employer-applications-heading">
+        <div class="employer-applications__heading">
+            <div>
+                <p class="catalog-kicker">КАНДИДАТЫ</p>
+                <h2 id="employer-applications-heading">Отклики на вакансии</h2>
+            </div>
+        </div>
+        <nav class="application-tabs" aria-label="Статусы откликов">
+            {% for tab in application_tabs %}
+            <a
+                class="application-tab{% if selected_application_status == tab.key %} is-active{% endif %}"
+                href="{% url 'jobs:employer_dashboard' %}?applications={{ tab.key }}"
+                {% if selected_application_status == tab.key %}aria-current="page"{% endif %}>
+                {{ tab.label }} <span>{{ tab.count }}</span>
+            </a>
+            {% endfor %}
+        </nav>
+        {% if applications %}
+        <div class="dashboard-list application-list">
+            {% for application in applications %}
+            <article class="dashboard-item application-item">
+                <div class="application-item__main">
+                    <div class="application-item__title">
+                        <div>
+                            <h3>{{ application.candidate.full_name }}</h3>
+                            {% if application.resume and application.resume.desired_position %}
+                            <p class="application-item__position">{{ application.resume.desired_position }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="status-badge status-badge--{{ application.status }}">{{ application.get_status_display }}</span>
+                    </div>
+                    <p class="vacancy-organization">
+                        {{ application.vacancy.title }} · {{ application.vacancy.organization.name }}
+                    </p>
+                    <p class="application-item__date">Отклик от {{ application.created_at|date:"d.m.Y" }}</p>
+                    {% if application.resume %}
+                    <details class="application-resume">
+                        <summary>Посмотреть резюме</summary>
+                        {% if application.resume.experience %}
+                        <div><strong>Опыт и навыки</strong><p>{{ application.resume.experience|linebreaksbr }}</p></div>
+                        {% endif %}
+                        {% if application.resume.education %}
+                        <div><strong>Образование</strong><p>{{ application.resume.education|linebreaksbr }}</p></div>
+                        {% endif %}
+                        {% if application.resume.portfolio_url %}
+                        <p><a class="text-link" href="{{ application.resume.portfolio_url }}" target="_blank" rel="noopener noreferrer">Портфолио</a></p>
+                        {% endif %}
+                        {% if application.resume.resume_file %}
+                        <a class="text-link" href="{% url 'jobs:application_resume' application.pk %}">Скачать файл резюме</a>
+                        {% endif %}
+                    </details>
+                    {% endif %}
+                    {% if application.cover_letter %}
+                    <div class="application-cover-letter">
+                        <strong>Сопроводительное письмо</strong>
+                        <p>{{ application.cover_letter|linebreaksbr }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if application.status == "new" or application.status == "reviewed" %}
+                <div class="application-item__actions">
+                    {% if application.status == "new" %}
+                    <form method="post" action="{% url 'jobs:employer_application_status' application.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="reviewed">
+                        <button class="button button--secondary" type="submit">Отметить просмотренным</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'jobs:employer_application_status' application.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="invited">
+                        <button class="button application-action--primary" type="submit">Пригласить</button>
+                    </form>
+                    <form method="post" action="{% url 'jobs:employer_application_status' application.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="rejected">
+                        <button class="button application-action--reject" type="submit">Отклонить</button>
+                    </form>
+                </div>
+                {% elif application.status == "invited" %}
+                <p class="application-item__waiting" role="status">Приглашение отправлено. Ожидаем ответ соискателя.</p>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state application-empty">
+            <p>В этом разделе пока нет откликов.</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <div class="dashboard-head dashboard-head--vacancies">
+        <h2>Ваши вакансии</h2>
+        <a class="button" href="{% url 'jobs:employer_vacancy_new' %}">Создать вакансию</a>
+    </div>
     {% if vacancies %}
     <div class="dashboard-list">
         {% for vacancy in vacancies %}
