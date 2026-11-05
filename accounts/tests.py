@@ -87,6 +87,33 @@ class CandidateResumePageTests(TestCase):
         self.assertContains(response, "Создать резюме")
         self.assertContains(response, "/resumes/new/")
 
+    def test_create_resume_returns_to_safe_application_url(self):
+        target = "/vacancies/42/?apply=1"
+        form_data = {
+            "surname": "Смирнова",
+            "first_name": "Анна",
+            "patronymic": "",
+            "phone": "+7 (900) 000-00-00",
+            "location": "Москва",
+            "title": "Резюме редактора",
+            "desired_position": "Редактор",
+            "experience": "Опыт работы",
+            "education": "Высшее образование",
+            "resume_visibility": "private",
+            "next": target,
+        }
+
+        page = self.client.get(f"/resumes/new/?next={target}")
+        self.assertContains(page, f'name="next" value="{target}"')
+        response = self.client.post("/resumes/new/", form_data)
+        self.assertRedirects(response, target, fetch_redirect_response=False)
+
+        response = self.client.post(
+            "/resumes/new/",
+            {**form_data, "next": "https://example.invalid/"},
+        )
+        self.assertRedirects(response, "/resumes/", fetch_redirect_response=False)
+
     def test_resume_form_has_grouped_fields_autocomplete_and_upload_zone(self):
         response = self.client.get("/resumes/new/")
 
@@ -97,6 +124,8 @@ class CandidateResumePageTests(TestCase):
         self.assertContains(response, "data-phone-mask")
         self.assertContains(response, "data-file-drop")
         self.assertContains(response, "position-suggestions")
+        self.assertContains(response, 'data-custom-autocomplete="true"')
+        self.assertContains(response, 'class="js-custom-select"')
         self.assertContains(response, "Сохранить черновик")
 
     def test_resume_form_validates_required_personal_data_and_sanitizes_rich_text(self):
@@ -149,6 +178,40 @@ class CandidateResumePageTests(TestCase):
         self.assertContains(response, "Анна Смирнова")
         self.assertContains(response, "data-theme-toggle")
         self.assertContains(response, "Мои резюме")
+        self.assertContains(response, 'href="/resumes/new/"')
+
+    def test_guest_registration_from_homepage_continues_to_resume_creation(self):
+        from django.test import Client
+
+        guest = Client()
+        homepage = guest.get("/")
+        self.assertContains(homepage, 'href="/register/?next=/resumes/new/"')
+
+        registration = guest.get("/register/?next=/resumes/new/")
+        self.assertContains(registration, 'name="next" value="/resumes/new/"')
+        self.assertContains(registration, 'href="/login/?next=/resumes/new/"')
+
+        response = guest.post(
+            "/register/?next=/resumes/new/",
+            {
+                "full_name": "Новая соискательница",
+                "email": "new-candidate@example.test",
+                "password": "Long-Test-Password-123!",
+                "next": "/resumes/new/",
+            },
+        )
+        self.assertRedirects(response, "/resumes/new/")
+
+        unsafe_response = Client().post(
+            "/register/",
+            {
+                "full_name": "Ещё одна соискательница",
+                "email": "another-candidate@example.test",
+                "password": "Long-Test-Password-123!",
+                "next": "https://example.com/",
+            },
+        )
+        self.assertRedirects(unsafe_response, "/resume/")
 
     def test_employer_name_is_shown_in_profile_menu(self):
         employer = User.objects.create_user(

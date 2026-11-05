@@ -200,6 +200,7 @@ class ApplicationListCreateView(generics.ListCreateAPIView):
             "candidate__user",
             "vacancy",
             "vacancy__organization",
+            "resume",
         )
         if user.role == User.Role.CANDIDATE:
             return queryset.filter(candidate__user=user)
@@ -237,6 +238,7 @@ class ApplicationDetailView(generics.RetrieveUpdateAPIView):
             "candidate__user",
             "vacancy",
             "vacancy__organization",
+            "resume",
         )
         if user.role == User.Role.CANDIDATE:
             return queryset.filter(candidate__user=user)
@@ -255,17 +257,35 @@ class ApplicationDetailView(generics.RetrieveUpdateAPIView):
     def perform_update(self, serializer):
         application = serializer.instance
         if self.request.user.role == User.Role.CANDIDATE:
-            if serializer.validated_data.get("status") != Application.Status.WITHDRAWN:
-                raise PermissionDenied("Соискатель может только отозвать свой отклик.")
-            serializer.save(status=Application.Status.WITHDRAWN)
-            return
+            new_status = serializer.validated_data.get("status")
+            if new_status == Application.Status.WITHDRAWN:
+                serializer.save(status=new_status)
+                return
+            if (
+                application.status == Application.Status.INVITED
+                and new_status in (Application.Status.ACCEPTED, Application.Status.REJECTED)
+            ):
+                serializer.save(status=new_status)
+                return
+            raise PermissionDenied("Соискатель может отозвать отклик или ответить на приглашение.")
         if self.request.user.role != User.Role.EMPLOYER:
             raise PermissionDenied("Недостаточно прав для изменения отклика.")
         if not has_organization_access(self.request.user, application.vacancy.organization):
             raise PermissionDenied("Нет доступа к этому отклику.")
         new_status = serializer.validated_data.get("status")
-        if new_status not in (Application.Status.REVIEWED, Application.Status.INVITED, Application.Status.REJECTED):
-            raise ValidationError({"status": "Работодатель может отметить отклик просмотренным, пригласить или отказать."})
+        allowed_transitions = {
+            Application.Status.NEW: (
+                Application.Status.REVIEWED,
+                Application.Status.INVITED,
+                Application.Status.REJECTED,
+            ),
+            Application.Status.REVIEWED: (
+                Application.Status.INVITED,
+                Application.Status.REJECTED,
+            ),
+        }
+        if new_status not in allowed_transitions.get(application.status, ()):
+            raise ValidationError({"status": "Это изменение статуса недоступно для текущего отклика."})
         serializer.save()
 
 

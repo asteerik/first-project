@@ -44,7 +44,7 @@ class LoginPage(FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["next"] = self.request.GET.get("next", "")
+        context["next"] = self.request.POST.get("next") or self.request.GET.get("next", "")
         return context
 
     def form_valid(self, form):
@@ -62,11 +62,16 @@ class RegisterPage(FormView):
     template_name = "accounts/register.html"
     form_class = CandidateRegistrationForm
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["next"] = self.request.POST.get("next") or self.request.GET.get("next", "")
+        return context
+
     def form_valid(self, form):
         user = form.save()
         login(self.request, user, backend="django.contrib.auth.backends.ModelBackend")
         messages.success(self.request, "Регистрация прошла успешно. Заполните резюме.")
-        return redirect("accounts:resume")
+        return redirect(safe_next_url(self.request, reverse("accounts:resume")))
 
 
 class EmployerRegisterPage(FormView):
@@ -174,12 +179,17 @@ class ResumeCreatePage(CandidateResumeFormPageMixin, CreateView):
     def form_valid(self, form):
         form.instance.candidate = self.get_candidate_profile()
         is_draft = save_resume_as_draft(self.request, form)
-        response = super().form_valid(form)
+        super().form_valid(form)
         if is_draft:
             messages.success(self.request, "Черновик сохранён и доступен только вам.")
         else:
             messages.success(self.request, "Резюме создано.")
-        return response
+        return redirect(safe_next_url(self.request, self.get_success_url()))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["next"] = self.request.POST.get("next") or self.request.GET.get("next", "")
+        return context
 
 
 class ResumeEditPage(CandidateResumeFormPageMixin, UpdateView):

@@ -3,7 +3,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
-from accounts.models import CandidateProfile, Organization
+from accounts.models import CandidateProfile, CandidateResume, Organization
 
 
 class Category(models.Model):
@@ -114,6 +114,7 @@ class Application(models.Model):
         REVIEWED = "reviewed", "Просмотрен"
         INVITED = "invited", "Приглашение"
         REJECTED = "rejected", "Отказ"
+        ACCEPTED = "accepted", "Принят"
         WITHDRAWN = "withdrawn", "Отозван"
 
     vacancy = models.ForeignKey(
@@ -127,6 +128,14 @@ class Application(models.Model):
         on_delete=models.PROTECT,
         related_name="applications",
         verbose_name="Соискатель",
+    )
+    resume = models.ForeignKey(
+        CandidateResume,
+        on_delete=models.SET_NULL,
+        related_name="applications",
+        verbose_name="Выбранное резюме",
+        null=True,
+        blank=True,
     )
     cover_letter = models.TextField("Сопроводительное письмо", blank=True, max_length=10000)
     status = models.CharField("Статус", max_length=12, choices=Status.choices, default=Status.NEW)

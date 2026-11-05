@@ -8,10 +8,11 @@
         <h1>Регистрация соискателя</h1>
         <form method="post" novalidate>
             {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
             {% include "accounts/_form_fields.html" %}
             <button class="button form-submit" type="submit">Зарегистрироваться</button>
         </form>
-        <p class="form-footer">Уже есть аккаунт? <a class="text-link" href="{% url 'accounts:login' %}">Войти</a></p>
+        <p class="form-footer">Уже есть аккаунт? <a class="text-link" href="{% url 'accounts:login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Войти</a></p>
     </div>
 </section>
 {% endblock %}

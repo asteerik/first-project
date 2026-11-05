@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Мои отклики — Работа для Души{% endblock %}
+
+{% block content %}
+<section class="page-section container">
+    <div class="dashboard-head">
+        <div>
+            <p class="catalog-kicker">ВАША КАРЬЕРА</p>
+            <h1>Мои отклики</h1>
+        </div>
+        <a class="button button--secondary" href="{% url 'accounts:resumes' %}">Мои резюме</a>
+    </div>
+    {% if applications %}
+    <div class="dashboard-list">
+        {% for application in applications %}
+        <article class="dashboard-item application-item">
+            <div class="application-item__main">
+                <div class="application-item__title">
+                    <div>
+                        <h2>{{ application.vacancy.title }}</h2>
+                        <p class="vacancy-organization">{{ application.vacancy.organization.name }} · {{ application.vacancy.location }}</p>
+                    </div>
+                    <span class="status-badge status-badge--{{ application.status }}">{{ application.get_status_display }}</span>
+                </div>
+                <p class="application-item__date">Отклик отправлен {{ application.created_at|date:"d.m.Y" }}</p>
+                {% if application.status == "invited" %}
+                <div class="candidate-invitation">
+                    <p>Работодатель приглашает вас продолжить общение по вакансии. Ответьте на приглашение:</p>
+                    <div class="application-item__actions">
+                        <form method="post" action="{% url 'jobs:candidate_application_response' application.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="accepted">
+                            <button class="button application-action--primary" type="submit">Принять приглашение</button>
+                        </form>
+                        <form method="post" action="{% url 'jobs:candidate_application_response' application.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="rejected">
+                            <button class="button application-action--reject" type="submit">Отказаться</button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <a class="text-link" href="{% url 'jobs:detail' application.vacancy_id %}">Открыть вакансию</a>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>Вы пока не откликались на вакансии.</p>
+        <a class="text-link" href="{% url 'jobs:list' %}">Посмотреть вакансии</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

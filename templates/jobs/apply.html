@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Отклик на вакансию — {{ vacancy.title }}{% endblock %}
+
+{% block content %}
+<section class="page-section container vacancy-application-page">
+    <a class="back-link" href="{% url 'jobs:detail' vacancy.id %}">← Вернуться к вакансии</a>
+    <div class="vacancy-application-card">
+        <p class="catalog-kicker">ОТКЛИК НА ВАКАНСИЮ</p>
+        <h1>{{ vacancy.title }}</h1>
+        <p class="vacancy-application-card__organization">{{ vacancy.organization.name }} · {{ vacancy.location }}</p>
+        {% include "jobs/_application_form.html" with form=form vacancy=vacancy has_resumes=has_resumes resume_return_url=resume_return_url %}
+    </div>
+</section>
+{% endblock %}

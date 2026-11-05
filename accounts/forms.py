@@ -49,6 +49,9 @@ def resume_form_fields(form):
         {"list": "region-suggestions", "autocomplete": "address-level2"}
     )
     form.fields["desired_position"].widget.attrs["list"] = "position-suggestions"
+    form.fields["desired_position"].widget.attrs["data-custom-autocomplete"] = "true"
+    form.fields["location"].widget.attrs["data-custom-autocomplete"] = "true"
+    form.fields["resume_visibility"].widget.attrs["class"] = "js-custom-select"
     if "title" in form.fields:
         form.fields["title"].label = "Название резюме *"
     form.fields["portfolio_url"].help_text = "GitHub, LinkedIn, Behance или ваш личный сайт."

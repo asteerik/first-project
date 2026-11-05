@@ -3,8 +3,16 @@ from django.urls import include, path
 from django.views.generic import TemplateView
 
 from .page_views import HomeView, PlaceholderView
-from jobs.page_views import VacancyDetailPage, VacancyListPage
+from jobs.page_views import (
+    ApplicationResumeDownloadPage,
+    CandidateApplicationResponsePage,
+    CandidateApplicationsPage,
+    VacancyApplicationPage,
+    VacancyDetailPage,
+    VacancyListPage,
+)
 from jobs.employer_views import (
+    EmployerApplicationStatusPage,
     EmployerDashboard,
     VacancyClosePage,
     VacancyCreatePage,
@@ -27,7 +35,24 @@ from accounts.page_views import (
 jobs_pages = [
     path("vacancies/", VacancyListPage.as_view(), name="list"),
     path("vacancies/<int:pk>/", VacancyDetailPage.as_view(), name="detail"),
+    path("vacancies/<int:pk>/apply/", VacancyApplicationPage.as_view(), name="apply"),
+    path("my-applications/", CandidateApplicationsPage.as_view(), name="candidate_applications"),
+    path(
+        "my-applications/<int:pk>/response/",
+        CandidateApplicationResponsePage.as_view(),
+        name="candidate_application_response",
+    ),
+    path(
+        "applications/<int:pk>/resume/",
+        ApplicationResumeDownloadPage.as_view(),
+        name="application_resume",
+    ),
     path("employer/", EmployerDashboard.as_view(), name="employer_dashboard"),
+    path(
+        "employer/applications/<int:pk>/status/",
+        EmployerApplicationStatusPage.as_view(),
+        name="employer_application_status",
+    ),
     path("employer/vacancies/new/", VacancyCreatePage.as_view(), name="employer_vacancy_new"),
     path("employer/vacancies/<int:pk>/edit/", VacancyEditPage.as_view(), name="employer_vacancy_edit"),
     path("employer/vacancies/<int:pk>/close/", VacancyClosePage.as_view(), name="employer_vacancy_close"),
