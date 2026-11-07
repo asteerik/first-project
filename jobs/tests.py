@@ -357,6 +357,16 @@ class RecruitmentApiTests(TestCase):
             'name="remote" value="1" checked',
             html=False,
         )
+        without_remote = self.client.get("/vacancies/?remote=0")
+        self.assertContains(without_remote, remote_vacancy.title)
+        self.assertEqual(without_remote.context["page"].paginator.count, 3)
+        self.assertContains(without_remote, 'name="remote" value="0"', html=False)
+        nearby_only = self.client.get(
+            "/vacancies/?latitude=55.75&longitude=37.61&radius=5&remote=0"
+        )
+        self.assertContains(nearby_only, self.vacancy.title)
+        self.assertNotContains(nearby_only, remote_vacancy.title)
+        self.assertEqual(nearby_only.context["page"].paginator.count, 1)
         invalid_radius = self.client.get(
             "/vacancies/?latitude=55.75&longitude=37.61&radius=201"
         )
@@ -391,6 +401,7 @@ class RecruitmentApiTests(TestCase):
         self.assertContains(response, "Краснодарский край")
         self.assertContains(response, 'name="region"')
         self.assertContains(response, 'name="remote"')
+        self.assertContains(response, "catalog-filters.js")
         self.assertContains(response, "Поиск вакансий поблизости")
         self.assertContains(response, "<datalist", html=False)
         self.assertContains(response, "Медицина и уход")

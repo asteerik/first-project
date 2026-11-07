@@ -35,9 +35,20 @@
                     {% endfor %}
                 </select>
             </div>
-            <label class="catalog-remote-filter">
-                <input type="checkbox" name="remote" value="1"{% if remote %} checked{% endif %}>
-                <span>Включать удалённые вакансии</span>
+            <label class="catalog-remote-filter{% if remote %} is-enabled{% endif %}" for="catalog-remote">
+                <input type="checkbox" id="catalog-remote" name="remote" value="1"{% if remote %} checked{% endif %}>
+                {% if remote_filter and not remote %}<input type="hidden" name="remote" value="0" data-remote-off>{% endif %}
+                <span class="catalog-remote-filter__switch" aria-hidden="true"></span>
+                <span class="catalog-remote-filter__copy">
+                    <strong>Удалённые вакансии</strong>
+                    <span>
+                        {% if latitude and longitude %}
+                            {% if remote %}Добавлять к поиску по радиусу{% else %}Показывать только вакансии в радиусе{% endif %}
+                        {% else %}
+                            {% if remote %}Искать только удалённые вакансии{% else %}Показывать все вакансии{% endif %}
+                        {% endif %}
+                    </span>
+                </span>
             </label>
             <section class="catalog-map-search" aria-labelledby="map-search-heading">
                 <h2 id="map-search-heading">Поиск вакансий поблизости</h2>
@@ -59,8 +70,14 @@
                 {% if location_error %}<p class="form-error" role="alert">{{ location_error }}</p>{% endif %}
             </section>
             <div class="catalog-filter-actions">
-                <button class="button catalog-search-button" type="submit">Найти вакансии</button>
-                {% if query or region or category or remote or latitude or longitude %}
+                <button class="button catalog-search-button" type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                    <span>Найти вакансии</span>
+                </button>
+                {% if query or region or category or remote_filter or latitude or longitude %}
                 <a class="catalog-reset-link" href="{% url 'jobs:list' %}">Сбросить</a>
                 {% endif %}
             </div>
@@ -117,6 +134,7 @@
     {% endif %}
 </section>
 </section>
+<script src="{% static 'js/catalog-filters.js' %}" defer></script>
 {% if yandex_maps_api_key %}
 <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key|urlencode }}&amp;lang=ru_RU" defer></script>
 <script src="{% static 'js/location-search.js' %}" defer></script>

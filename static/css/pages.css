@@ -791,19 +791,94 @@
 }
 
 .catalog-remote-filter {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 9px;
-    min-height: 46px;
+    gap: 12px;
+    min-width: 220px;
+    min-height: 58px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--surface-tint);
     color: var(--green-900);
+    cursor: pointer;
+    transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.catalog-remote-filter input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+.catalog-remote-filter:hover {
+    border-color: var(--green-700);
+}
+
+.catalog-remote-filter.is-enabled {
+    border-color: var(--green-800);
+    background: var(--paper);
+    box-shadow: 0 0 0 2px rgba(46, 90, 77, 0.12);
+}
+
+.catalog-remote-filter input:focus-visible + .catalog-remote-filter__switch {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.catalog-remote-filter__switch {
+    position: relative;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 24px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--input-surface);
+    transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.catalog-remote-filter__switch::after {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--muted);
+    content: "";
+    transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.catalog-remote-filter input:checked + .catalog-remote-filter__switch {
+    border-color: var(--green-800);
+    background: var(--green-800);
+}
+
+.catalog-remote-filter input:checked + .catalog-remote-filter__switch::after {
+    transform: translateX(18px);
+    background: var(--button-ink);
+}
+
+.catalog-remote-filter__copy {
+    display: grid;
+    gap: 3px;
+}
+
+.catalog-remote-filter__copy strong {
+    color: var(--green-950);
     font-size: 13px;
     font-weight: 600;
 }
 
-.catalog-remote-filter input {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--green-800);
+.catalog-remote-filter__copy > span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
 }
 
 .catalog-map-search {
@@ -859,10 +934,29 @@
 }
 
 .catalog-search-button {
-    min-width: 150px;
-    min-height: 46px;
-    padding: 0 17px;
-    border-radius: 7px;
+    min-width: 184px;
+    min-height: 48px;
+    gap: 9px;
+    padding: 0 20px;
+    border: 1px solid var(--green-800);
+    border-radius: 8px;
+    box-shadow: 0 5px 14px rgba(27, 49, 39, 0.12);
+    letter-spacing: 0.01em;
+}
+
+.catalog-search-button svg {
+    width: 18px;
+    height: 18px;
+}
+
+.catalog-search-button:hover {
+    border-color: var(--green-950);
+    box-shadow: 0 8px 18px rgba(27, 49, 39, 0.18);
+}
+
+.catalog-search-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
 }
 
 .catalog-reset-link {

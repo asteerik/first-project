@@ -58,7 +58,8 @@ class VacancyListPage(TemplateView):
         query = params.get("q", "").strip()
         region = params.get("region", "").strip()
         category = params.get("category", "").strip()
-        remote = params.get("remote") == "1"
+        remote_filter = params.get("remote", "")
+        remote = remote_filter == "1"
         latitude = params.get("latitude", "").strip()
         longitude = params.get("longitude", "").strip()
         radius = params.get("radius", "50").strip()
@@ -119,6 +120,7 @@ class VacancyListPage(TemplateView):
             region=region,
             category=category,
             remote=remote,
+            remote_filter=bool(remote_filter),
             latitude=latitude,
             longitude=longitude,
             radius=radius,
