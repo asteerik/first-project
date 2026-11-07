@@ -162,6 +162,38 @@ class RecruitmentApiTests(TestCase):
         self.assertEqual(accepted.status_code, 200, accepted.data)
         self.assertEqual(accepted.data["status"], Application.Status.ACCEPTED)
 
+    def test_about_page_uses_editorial_layout_and_real_database_counts(self):
+        response = self.client.get("/about/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="about-toc"')
+        self.assertContains(response, 'href="#mission"')
+        self.assertContains(response, "about-navigation.js")
+        self.assertNotContains(response, "images.unsplash.com")
+        self.assertNotContains(response, 'class="about-gallery"')
+        self.assertContains(response, 'id="seekers"')
+        self.assertContains(response, 'id="seekers" aria-labelledby="about-seekers-heading" tabindex="-1"')
+        self.assertContains(response, "Создайте резюме за 2 минуты.")
+        self.assertContains(response, "Заполните карточку прихода или фонда.")
+        self.assertContains(response, "Каждая заявка проходит ручную проверку модератором перед публикацией.")
+        self.assertContains(response, "Загружаемые файлы резюме проверяются по типу, структуре и размеру.")
+        self.assertContains(response, 'class="about-safety-list"')
+        self.assertContains(response, 'class="about-faq"')
+        self.assertContains(response, "Платная ли публикация вакансий?")
+        self.assertContains(response, "Кто видит моё резюме?")
+        self.assertContains(response, str(Vacancy.objects.filter(status=Vacancy.Status.APPROVED).count()))
+        self.assertContains(
+            response,
+            str(
+                Organization.objects.filter(
+                    verification_status=Organization.VerificationStatus.APPROVED
+                ).count()
+            ),
+        )
+        self.assertContains(response, "Мы соединяем людей, которые хотят трудиться с верой и для добрых дел, с приходами, школами, благотворительными фондами и другими организациями, близкими им по ценностям.")
+        self.assertContains(response, "Смотреть вакансии")
+        self.assertContains(response, "Разместить вакансию")
+
     def test_favorites_are_private_unique_and_candidate_only(self):
         candidate = self.register("fav@example.test", "candidate", full_name="Соискатель")
         other = self.register("fav2@example.test", "candidate", full_name="Другой")
@@ -747,6 +779,109 @@ class RecruitmentApiTests(TestCase):
             {"full_name": "Иван", "email": "cand2@example.test", "password": "Long-Test-Password-123!"},
         )
         self.assertEqual(candidate.get("/employer/").status_code, 302)
+
+    def test_admin_can_moderate_organizations_and_vacancies_in_admin(self):
+        from django.test import Client
+
+        admin_user = User.objects.create_superuser(
+            "site-admin@example.test",
+            "Long-Test-Password-123!",
+        )
+        pending_organization = Organization.objects.create(
+            owner=self.employer,
+            name="Организация на проверке",
+        )
+        pending_vacancy = Vacancy.objects.create(
+            organization=pending_organization,
+            category=self.category,
+            created_by=self.employer,
+            title="Вакансия на проверке",
+            description="Описание вакансии для проверки модератором.",
+            location="Москва",
+            status=Vacancy.Status.PENDING,
+        )
+
+        admin_client = Client()
+        admin_client.force_login(admin_user)
+        organization_response = admin_client.post(
+            "/admin/accounts/organization/",
+            {
+                "action": "approve_pending_organizations",
+                "_selected_action": [str(pending_organization.pk)],
+                "index": "0",
+            },
+        )
+        self.assertEqual(organization_response.status_code, 302)
+        pending_organization.refresh_from_db()
+        self.assertEqual(
+            pending_organization.verification_status,
+            Organization.VerificationStatus.APPROVED,
+        )
+        self.assertIsNotNone(pending_organization.verified_at)
+
+        approval_response = admin_client.post(
+            "/admin/jobs/vacancy/",
+            {
+                "action": "approve_pending_vacancies",
+                "_selected_action": [str(pending_vacancy.pk)],
+                "index": "0",
+            },
+        )
+        self.assertEqual(approval_response.status_code, 302)
+        pending_vacancy.refresh_from_db()
+        self.assertEqual(pending_vacancy.status, Vacancy.Status.APPROVED)
+        self.assertIsNotNone(pending_vacancy.published_at)
+        self.assertTrue(
+            ModerationLog.objects.filter(
+                moderator=admin_user,
+                organization=pending_organization,
+                action="organizations_approve",
+            ).exists()
+        )
+        self.assertTrue(
+            ModerationLog.objects.filter(
+                moderator=admin_user,
+                vacancy=pending_vacancy,
+                action="vacancies_approve",
+            ).exists()
+        )
+
+    def test_admin_cannot_publish_vacancy_before_organization_approval(self):
+        from django.test import Client
+
+        admin_user = User.objects.create_superuser(
+            "another-site-admin@example.test",
+            "Long-Test-Password-123!",
+        )
+        pending_organization = Organization.objects.create(
+            owner=self.employer,
+            name="Ещё не проверенная организация",
+        )
+        pending_vacancy = Vacancy.objects.create(
+            organization=pending_organization,
+            category=self.category,
+            created_by=self.employer,
+            title="Ранняя вакансия",
+            description="Описание вакансии до проверки организации.",
+            location="Москва",
+            status=Vacancy.Status.PENDING,
+        )
+
+        admin_client = Client()
+        admin_client.force_login(admin_user)
+        response = admin_client.post(
+            "/admin/jobs/vacancy/",
+            {
+                "action": "approve_pending_vacancies",
+                "_selected_action": [str(pending_vacancy.pk)],
+                "index": "0",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        pending_vacancy.refresh_from_db()
+        self.assertEqual(pending_vacancy.status, Vacancy.Status.PENDING)
+        self.assertIsNone(pending_vacancy.published_at)
 
     def test_registration_cannot_assign_moderator_role(self):
         response = self.client.post(
