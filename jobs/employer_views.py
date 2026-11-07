@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
@@ -42,6 +43,24 @@ class VacancyForm(forms.ModelForm):
             attrs={"inputmode": "numeric", "data-grouped-number": "true"}
         ),
     )
+    latitude = forms.DecimalField(
+        label="Широта точки вакансии",
+        required=False,
+        min_value=-90,
+        max_value=90,
+        max_digits=9,
+        decimal_places=6,
+        widget=forms.HiddenInput(),
+    )
+    longitude = forms.DecimalField(
+        label="Долгота точки вакансии",
+        required=False,
+        min_value=-180,
+        max_value=180,
+        max_digits=9,
+        decimal_places=6,
+        widget=forms.HiddenInput(),
+    )
 
     class Meta:
         model = Vacancy
@@ -50,6 +69,9 @@ class VacancyForm(forms.ModelForm):
             "title",
             "location",
             "employment_type",
+            "work_format",
+            "latitude",
+            "longitude",
             "salary_min",
             "salary_max",
             "description",
@@ -64,7 +86,7 @@ class VacancyForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = Category.objects.filter(is_active=True)
         self.fields["category"].empty_label = "Выберите категорию"
-        for field_name in ("category", "employment_type"):
+        for field_name in ("category", "employment_type", "work_format"):
             self.fields[field_name].widget.attrs["class"] = "js-custom-select"
         self.organizations = list(organizations)
         if len(self.organizations) > 1:
@@ -87,6 +109,8 @@ class VacancyForm(forms.ModelForm):
         minimum, maximum = cleaned.get("salary_min"), cleaned.get("salary_max")
         if minimum is not None and maximum is not None and minimum > maximum:
             self.add_error("salary_max", "Зарплата «до» не может быть меньше зарплаты «от».")
+        if (cleaned.get("latitude") is None) != (cleaned.get("longitude") is None):
+            self.add_error(None, "Выберите точку вакансии на карте или очистите обе координаты.")
         return cleaned
 
     def save(self, commit=True):
@@ -196,6 +220,11 @@ class VacancyFormMixin(EmployerRequiredMixin):
 
     def get_form_kwargs(self):
         return {**super().get_form_kwargs(), "organizations": self.organizations}
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["yandex_maps_api_key"] = settings.YANDEX_MAPS_API_KEY
+        return context
 
     def form_valid(self, form):
         vacancy = form.save(commit=False)

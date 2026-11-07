@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{% if object %}Редактирование вакансии{% else %}Новая вакансия{% endif %} — Работа для Души{% endblock %}
 
@@ -9,10 +10,24 @@
         <p class="form-hint">После сохранения вакансия уйдёт на проверку модератору и появится на сайте после одобрения.</p>
         <form method="post" novalidate>
             {% csrf_token %}
+            <section class="catalog-map-search" aria-labelledby="vacancy-map-heading">
+                <h2 id="vacancy-map-heading">Местоположение вакансии</h2>
+                <p>Выберите точку на карте, чтобы соискатели могли найти вакансию поблизости.</p>
+                {% if yandex_maps_api_key %}
+                <div id="vacancy-map" aria-label="Выбор местоположения вакансии"></div>
+                <p id="map-location" role="status">Нажмите на карту, чтобы выбрать точку</p>
+                {% else %}
+                <p class="form-hint">Для выбора координат добавьте YANDEX_MAPS_API_KEY в файл .env. Координаты необязательны.</p>
+                {% endif %}
+            </section>
             {% include "accounts/_form_fields.html" %}
             <button class="button form-submit" type="submit">Отправить на проверку</button>
         </form>
         <p class="form-footer"><a class="text-link" href="{% url 'jobs:employer_dashboard' %}">← В кабинет</a></p>
     </div>
 </section>
+{% if yandex_maps_api_key %}
+<script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key|urlencode }}&amp;lang=ru_RU" defer></script>
+<script src="{% static 'js/location-search.js' %}" defer></script>
+{% endif %}
 {% endblock %}

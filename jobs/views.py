@@ -109,6 +109,19 @@ class VacancyListCreateView(generics.ListCreateAPIView):
             if employment_type not in Vacancy.EmploymentType.values:
                 raise ValidationError({"employment_type": "Неизвестный тип занятости."})
             queryset = queryset.filter(employment_type=employment_type)
+        work_format = self.request.query_params.get("work_format", "").strip()
+        if work_format:
+            if work_format not in Vacancy.WorkFormat.values:
+                raise ValidationError({"work_format": "Неизвестный формат работы."})
+            queryset = queryset.filter(work_format=work_format)
+        remote = self.request.query_params.get("remote", "").strip().lower()
+        if remote:
+            if remote not in {"true", "false", "1", "0"}:
+                raise ValidationError({"remote": "Укажите true или false."})
+            if remote in {"true", "1"}:
+                queryset = queryset.filter(work_format=Vacancy.WorkFormat.REMOTE)
+            else:
+                queryset = queryset.exclude(work_format=Vacancy.WorkFormat.REMOTE)
         if "salary_min" in self.request.query_params:
             minimum = parse_nonnegative_integer(self.request.query_params["salary_min"], "salary_min")
             queryset = queryset.filter(Q(salary_max__gte=minimum) | Q(salary_max__isnull=True))

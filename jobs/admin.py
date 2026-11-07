@@ -14,7 +14,7 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Vacancy)
 class VacancyAdmin(admin.ModelAdmin):
     list_display = ("title", "organization", "category", "status", "created_at")
-    list_filter = ("status", "employment_type", "category")
+    list_filter = ("status", "employment_type", "work_format", "category")
     search_fields = ("title", "organization__name", "location")
     readonly_fields = (
         "status",

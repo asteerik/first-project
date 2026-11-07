@@ -43,6 +43,9 @@ class VacancySerializer(serializers.ModelSerializer):
             "requirements",
             "location",
             "employment_type",
+            "work_format",
+            "latitude",
+            "longitude",
             "salary_min",
             "salary_max",
             "status",
@@ -66,6 +69,12 @@ class VacancySerializer(serializers.ModelSerializer):
         maximum = attrs.get("salary_max", getattr(self.instance, "salary_max", None))
         if minimum is not None and maximum is not None and minimum > maximum:
             raise serializers.ValidationError({"salary_max": "Зарплата «до» не может быть меньше зарплаты «от»."})
+        latitude = attrs.get("latitude", getattr(self.instance, "latitude", None))
+        longitude = attrs.get("longitude", getattr(self.instance, "longitude", None))
+        if (latitude is None) != (longitude is None):
+            raise serializers.ValidationError(
+                {"latitude": "Широту и долготу нужно указывать вместе."}
+            )
         return attrs
 
     def to_representation(self, instance):

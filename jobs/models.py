@@ -35,6 +35,11 @@ class Vacancy(models.Model):
         TEMPORARY = "temporary", "Временная работа"
         VOLUNTEER = "volunteer", "Волонтёрство"
 
+    class WorkFormat(models.TextChoices):
+        ONSITE = "onsite", "На месте"
+        HYBRID = "hybrid", "Гибридно"
+        REMOTE = "remote", "Удалённо"
+
     organization = models.ForeignKey(
         Organization,
         on_delete=models.PROTECT,
@@ -62,6 +67,28 @@ class Vacancy(models.Model):
         max_length=12,
         choices=EmploymentType.choices,
         default=EmploymentType.FULL_TIME,
+    )
+    work_format = models.CharField(
+        "Формат работы",
+        max_length=10,
+        choices=WorkFormat.choices,
+        default=WorkFormat.ONSITE,
+    )
+    latitude = models.DecimalField(
+        "Широта",
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(-90), MaxValueValidator(90)],
+    )
+    longitude = models.DecimalField(
+        "Долгота",
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(-180), MaxValueValidator(180)],
     )
     salary_min = models.PositiveIntegerField(
         "Зарплата от, руб.",
@@ -96,6 +123,11 @@ class Vacancy(models.Model):
                 | Q(salary_max__isnull=True)
                 | Q(salary_min__lte=models.F("salary_max")),
                 name="vacancy_salary_min_lte_max",
+            ),
+            models.CheckConstraint(
+                condition=Q(latitude__isnull=True, longitude__isnull=True)
+                | Q(latitude__isnull=False, longitude__isnull=False),
+                name="vacancy_coordinates_together",
             ),
         ]
         indexes = [

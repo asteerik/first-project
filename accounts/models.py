@@ -1,8 +1,9 @@
 from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
+from django.db.models import Q
 
 from .files import PrivateStorage, resume_upload_path, validate_resume_file
 
@@ -124,6 +125,27 @@ class CandidateResume(models.Model):
     portfolio_url = models.URLField("Ссылка на портфолио", max_length=500, blank=True)
     experience = models.TextField("Опыт и навыки", blank=True)
     education = models.TextField("Образование", blank=True)
+    latitude = models.DecimalField(
+        "Широта желаемого места работы",
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(-90), MaxValueValidator(90)],
+    )
+    longitude = models.DecimalField(
+        "Долгота желаемого места работы",
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(-180), MaxValueValidator(180)],
+    )
+    preferred_radius_km = models.PositiveSmallIntegerField(
+        "Желаемый радиус поиска, км",
+        default=50,
+        validators=[MinValueValidator(1), MaxValueValidator(200)],
+    )
     resume_visibility = models.CharField(
         "Видимость резюме",
         max_length=24,
@@ -146,6 +168,17 @@ class CandidateResume(models.Model):
         verbose_name = "резюме соискателя"
         verbose_name_plural = "резюме соискателей"
         ordering = ["-updated_at", "-pk"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(latitude__isnull=True, longitude__isnull=True)
+                | Q(latitude__isnull=False, longitude__isnull=False),
+                name="resume_coordinates_together",
+            ),
+            models.CheckConstraint(
+                condition=Q(preferred_radius_km__gte=1, preferred_radius_km__lte=200),
+                name="resume_radius_1_to_200",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.title} — {self.candidate.full_name}"

@@ -1,7 +1,9 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import F, FloatField, Q, Value
+from django.db.models.functions import ASin, Cast, Cos, Least, Radians, Sin, Sqrt
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -18,10 +20,33 @@ from .regions import REGION_SUGGESTIONS
 from .views import apply_region_filter
 
 PAGE_SIZE = 9
+EARTH_RADIUS_KM = 6371.0
 
 
 def published_vacancies():
     return Vacancy.objects.filter(status=Vacancy.Status.APPROVED).select_related("organization", "category")
+
+
+def filter_vacancies_by_radius(queryset, latitude, longitude, radius):
+    center_latitude = Radians(Value(latitude, output_field=FloatField()))
+    center_longitude = Value(longitude, output_field=FloatField())
+    vacancy_latitude = Radians(Cast(F("latitude"), FloatField()))
+    delta_latitude = (vacancy_latitude - center_latitude) / Value(2.0)
+    delta_longitude = Radians(Cast(F("longitude"), FloatField()) - center_longitude) / Value(2.0)
+    sin_latitude = Sin(delta_latitude)
+    sin_longitude = Sin(delta_longitude)
+    haversine = (
+        sin_latitude * sin_latitude
+        + Cos(center_latitude) * Cos(vacancy_latitude) * sin_longitude * sin_longitude
+    )
+    distance = (
+        Value(2 * EARTH_RADIUS_KM, output_field=FloatField())
+        * ASin(Sqrt(Least(Value(1.0), haversine)))
+    )
+    queryset = queryset.annotate(
+        distance_km=distance,
+    ).filter(latitude__isnull=False, longitude__isnull=False)
+    return queryset.filter(distance_km__lte=radius)
 
 
 class VacancyListPage(TemplateView):
@@ -33,6 +58,11 @@ class VacancyListPage(TemplateView):
         query = params.get("q", "").strip()
         region = params.get("region", "").strip()
         category = params.get("category", "").strip()
+        remote = params.get("remote") == "1"
+        latitude = params.get("latitude", "").strip()
+        longitude = params.get("longitude", "").strip()
+        radius = params.get("radius", "50").strip()
+        location_error = ""
 
         queryset = published_vacancies()
         if query:
@@ -48,6 +78,36 @@ class VacancyListPage(TemplateView):
                 region = ""
         if category:
             queryset = queryset.filter(category__slug=category)
+        if remote and not (latitude or longitude):
+            queryset = queryset.filter(work_format=Vacancy.WorkFormat.REMOTE)
+        elif latitude or longitude:
+            try:
+                if not latitude or not longitude:
+                    raise ValueError
+                latitude_value = float(latitude)
+                longitude_value = float(longitude)
+                radius_value = int(radius)
+                if not (-90 <= latitude_value <= 90 and -180 <= longitude_value <= 180):
+                    raise ValueError
+                if not 1 <= radius_value <= 200:
+                    raise ValueError
+            except (TypeError, ValueError):
+                location_error = "Укажите корректную точку на карте и радиус от 1 до 200 км."
+                queryset = queryset.none()
+            else:
+                nearby = filter_vacancies_by_radius(
+                    queryset,
+                    latitude_value,
+                    longitude_value,
+                    radius_value,
+                )
+                if remote:
+                    queryset = queryset.filter(
+                        Q(pk__in=nearby.values("pk"))
+                        | Q(work_format=Vacancy.WorkFormat.REMOTE)
+                    )
+                else:
+                    queryset = nearby
 
         page = Paginator(queryset, PAGE_SIZE).get_page(params.get("page"))
         extra_params = params.copy()
@@ -58,6 +118,12 @@ class VacancyListPage(TemplateView):
             query=query,
             region=region,
             category=category,
+            remote=remote,
+            latitude=latitude,
+            longitude=longitude,
+            radius=radius,
+            location_error=location_error,
+            yandex_maps_api_key=settings.YANDEX_MAPS_API_KEY,
             region_suggestions=REGION_SUGGESTIONS,
             categories=Category.objects.filter(is_active=True),
             filter_query=extra_params.urlencode(),

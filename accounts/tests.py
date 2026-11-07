@@ -128,6 +128,95 @@ class CandidateResumePageTests(TestCase):
         self.assertContains(response, 'class="js-custom-select"')
         self.assertContains(response, "Сохранить черновик")
 
+    def test_resume_saves_map_location_and_preferred_radius(self):
+        response = self.client.get("/resumes/new/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Где вы ищете работу")
+        self.assertContains(response, 'name="latitude"')
+        self.assertContains(response, 'name="longitude"')
+        self.assertContains(response, 'name="preferred_radius_km"')
+
+        data = {
+            "surname": "Смирнова",
+            "first_name": "Анна",
+            "patronymic": "",
+            "phone": "+7 (900) 000-00-00",
+            "location": "Москва",
+            "title": "Резюме редактора",
+            "desired_position": "Редактор",
+            "experience": "Опыт работы",
+            "education": "Высшее образование",
+            "resume_visibility": "private",
+            "latitude": "55.755800",
+            "longitude": "37.617300",
+            "preferred_radius_km": "120",
+        }
+        response = self.client.post("/resumes/new/", data)
+        self.assertEqual(response.status_code, 302)
+        resume = CandidateResume.objects.get()
+        self.assertEqual(str(resume.latitude), "55.755800")
+        self.assertEqual(str(resume.longitude), "37.617300")
+        self.assertEqual(resume.preferred_radius_km, 120)
+
+        edit_page = self.client.get(f"/resumes/{resume.pk}/edit/")
+        self.assertContains(edit_page, 'value="55.755800"')
+        self.assertContains(edit_page, 'value="37.617300"')
+        self.assertContains(edit_page, 'value="120"')
+
+        edit_data = {
+            "surname": "Смирнова",
+            "first_name": "Анна",
+            "patronymic": "",
+            "phone": "+7 (900) 000-00-00",
+            "location": "Москва",
+            "title": "Резюме редактора",
+            "desired_position": "Редактор",
+            "experience": "Опыт работы",
+            "education": "Высшее образование",
+            "resume_visibility": "private",
+            "latitude": "55.755800",
+            "longitude": "37.617300",
+            "preferred_radius_km": "75",
+        }
+        response = self.client.post(f"/resumes/{resume.pk}/edit/", edit_data)
+        self.assertEqual(response.status_code, 302)
+        resume.refresh_from_db()
+        self.assertEqual(resume.preferred_radius_km, 75)
+
+        no_map_data = self.create_resume()
+        self.assertEqual(no_map_data.status_code, 302)
+        default_resume = CandidateResume.objects.exclude(pk=resume.pk).get()
+        self.assertEqual(default_resume.preferred_radius_km, 50)
+        self.assertIsNone(default_resume.latitude)
+        self.assertIsNone(default_resume.longitude)
+
+    def test_resume_rejects_invalid_radius_and_incomplete_coordinates(self):
+        data = {
+            "surname": "Смирнова",
+            "first_name": "Анна",
+            "patronymic": "",
+            "phone": "+7 (900) 000-00-00",
+            "location": "Москва",
+            "title": "Резюме редактора",
+            "desired_position": "Редактор",
+            "experience": "Опыт работы",
+            "education": "Высшее образование",
+            "resume_visibility": "private",
+        }
+        response = self.client.post(
+            "/resumes/new/",
+            {**data, "latitude": "55.755800", "preferred_radius_km": "50"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CandidateResume.objects.exists())
+
+        response = self.client.post(
+            "/resumes/new/",
+            {**data, "preferred_radius_km": "201"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(CandidateResume.objects.exists())
+
     def test_resume_form_validates_required_personal_data_and_sanitizes_rich_text(self):
         data = {
             "surname": "<script>alert(1)</script>",

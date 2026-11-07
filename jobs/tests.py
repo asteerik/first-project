@@ -312,12 +312,86 @@ class RecruitmentApiTests(TestCase):
         self.assertEqual(self.client.get("/api/vacancies/?region=krasnodar").data["count"], 1)
         self.assertEqual(self.client.get("/api/vacancies/?region=Краснодарский%20край").data["count"], 1)
 
+    def test_remote_and_map_radius_filters_work_on_site_and_api(self):
+        remote_vacancy = Vacancy.objects.create(
+            organization=self.organization,
+            category=self.category,
+            created_by=self.employer,
+            title="Удалённый редактор",
+            description="Описание удалённой вакансии",
+            location="Россия",
+            work_format=Vacancy.WorkFormat.REMOTE,
+            status=Vacancy.Status.APPROVED,
+            latitude=None,
+            longitude=None,
+        )
+        self.vacancy.latitude = 55.75
+        self.vacancy.longitude = 37.61
+        self.vacancy.save(update_fields=["latitude", "longitude"])
+        distant_vacancy = Vacancy.objects.create(
+            organization=self.organization,
+            category=self.category,
+            created_by=self.employer,
+            title="Вакансия далеко",
+            description="Описание вакансии в отдалённом месте",
+            location="Россия",
+            latitude=56.0,
+            longitude=37.61,
+            status=Vacancy.Status.APPROVED,
+        )
+        self.client.force_authenticate(None)
+
+        nearby = self.client.get("/vacancies/?latitude=55.75&longitude=37.61&radius=5")
+        self.assertContains(nearby, self.vacancy.title)
+        self.assertNotContains(nearby, distant_vacancy.title)
+        self.assertNotContains(nearby, remote_vacancy.title)
+        nearby_and_remote = self.client.get(
+            "/vacancies/?latitude=55.75&longitude=37.61&radius=5&remote=1"
+        )
+        self.assertContains(nearby_and_remote, remote_vacancy.title)
+        self.assertContains(nearby_and_remote, self.vacancy.title)
+        self.assertNotContains(nearby_and_remote, distant_vacancy.title)
+        self.assertContains(self.client.get("/vacancies/?remote=1"), remote_vacancy.title)
+        self.assertContains(
+            self.client.get("/vacancies/?remote=1"),
+            'name="remote" value="1" checked',
+            html=False,
+        )
+        invalid_radius = self.client.get(
+            "/vacancies/?latitude=55.75&longitude=37.61&radius=201"
+        )
+        self.assertContains(invalid_radius, "от 1 до 200 км")
+
+        self.assertEqual(self.client.get("/api/vacancies/?remote=true").data["count"], 1)
+        self.assertEqual(self.client.get("/api/vacancies/?remote=false").data["count"], 2)
+        self.assertEqual(
+            self.client.get("/api/vacancies/?work_format=remote").data["count"],
+            1,
+        )
+        self.assertEqual(self.client.get("/api/vacancies/?remote=maybe").status_code, 400)
+        self.client.force_authenticate(self.employer)
+        incomplete_coordinates = self.client.post(
+            "/api/vacancies/",
+            {
+                "organization_id": self.organization.pk,
+                "category_id": self.category.pk,
+                "title": "Вакансия с неполной точкой",
+                "description": "Описание вакансии с указанной только широтой.",
+                "location": "Москва",
+                "latitude": 55.75,
+            },
+            format="json",
+        )
+        self.assertEqual(incomplete_coordinates.status_code, 400)
+
     def test_region_suggestions_and_primary_categories_are_available_in_site_filters(self):
         response = self.client.get("/vacancies/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Республика Татарстан")
         self.assertContains(response, "Краснодарский край")
         self.assertContains(response, 'name="region"')
+        self.assertContains(response, 'name="remote"')
+        self.assertContains(response, "Поиск вакансий поблизости")
         self.assertContains(response, "<datalist", html=False)
         self.assertContains(response, "Медицина и уход")
         self.assertContains(response, "Волонтёрство")
@@ -613,6 +687,7 @@ class RecruitmentApiTests(TestCase):
             "title": "Звонарь",
             "location": "Москва",
             "employment_type": "full_time",
+            "work_format": "onsite",
             "salary_min": "50000",
             "salary_max": "40000",
             "description": "Короткое",
@@ -636,9 +711,11 @@ class RecruitmentApiTests(TestCase):
         self.assertContains(web.get("/employer/"), "Звонарь")
 
         data["title"] = "Звонарь-помощник"
+        data["work_format"] = "remote"
         self.assertEqual(web.post(f"/employer/vacancies/{vacancy.pk}/edit/", data).status_code, 302)
         vacancy.refresh_from_db()
         self.assertEqual(vacancy.title, "Звонарь-помощник")
+        self.assertEqual(vacancy.work_format, Vacancy.WorkFormat.REMOTE)
 
         other = Client()
         other.post(

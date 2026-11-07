@@ -258,6 +258,31 @@ class CandidateResumeForm(forms.ModelForm):
         ),
     )
     location = forms.CharField(label="Город или регион", max_length=120, required=False)
+    latitude = forms.DecimalField(
+        label="Широта",
+        required=False,
+        min_value=-90,
+        max_value=90,
+        max_digits=9,
+        decimal_places=6,
+        widget=forms.HiddenInput(attrs={"id": "latitude"}),
+    )
+    longitude = forms.DecimalField(
+        label="Долгота",
+        required=False,
+        min_value=-180,
+        max_value=180,
+        max_digits=9,
+        decimal_places=6,
+        widget=forms.HiddenInput(attrs={"id": "longitude"}),
+    )
+    preferred_radius_km = forms.IntegerField(
+        label="Желаемый радиус поиска, км",
+        required=False,
+        min_value=1,
+        max_value=200,
+        widget=forms.HiddenInput(attrs={"id": "radius-input"}),
+    )
     remove_resume_file = forms.BooleanField(label="Удалить прикреплённый файл", required=False)
 
     class Meta:
@@ -268,6 +293,9 @@ class CandidateResumeForm(forms.ModelForm):
             "portfolio_url",
             "experience",
             "education",
+            "latitude",
+            "longitude",
+            "preferred_radius_km",
             "resume_visibility",
             "resume_file",
         )
@@ -293,6 +321,9 @@ class CandidateResumeForm(forms.ModelForm):
             "patronymic",
             "phone",
             "location",
+            "latitude",
+            "longitude",
+            "preferred_radius_km",
             "title",
             "desired_position",
             "portfolio_url",
@@ -314,6 +345,9 @@ class CandidateResumeForm(forms.ModelForm):
     def clean_patronymic(self):
         return validate_person_name(self.cleaned_data["patronymic"])
 
+    def clean_preferred_radius_km(self):
+        return self.cleaned_data["preferred_radius_km"] or 50
+
     def clean_phone(self):
         phone = self.cleaned_data["phone"]
         if not re.fullmatch(r"[0-9+() .-]+", phone):
@@ -325,6 +359,8 @@ class CandidateResumeForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        if (cleaned.get("latitude") is None) != (cleaned.get("longitude") is None):
+            self.add_error(None, "Выберите точку на карте или очистите обе координаты.")
         if cleaned.get("remove_resume_file") and self.files.get("resume_file"):
             self.add_error("resume_file", "Выберите: заменить файл или удалить его.")
         return cleaned

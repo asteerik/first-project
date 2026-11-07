@@ -49,6 +49,7 @@
                 <div><dt>Организация</dt><dd>{{ vacancy.organization.name }}</dd></div>
                 <div><dt>Город</dt><dd>{{ vacancy.location }}</dd></div>
                 <div><dt>Занятость</dt><dd>{{ vacancy.get_employment_type_display }}</dd></div>
+                <div><dt>Формат работы</dt><dd>{{ vacancy.get_work_format_display }}</dd></div>
                 {% if vacancy.salary_min or vacancy.salary_max %}
                 <div><dt>Зарплата</dt><dd>{% include "jobs/_salary.html" %}</dd></div>
                 {% endif %}

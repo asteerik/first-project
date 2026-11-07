@@ -790,6 +790,65 @@
     width: 100%;
 }
 
+.catalog-remote-filter {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 46px;
+    color: var(--green-900);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.catalog-remote-filter input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--green-800);
+}
+
+.catalog-map-search {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+
+.catalog-map-search h2 {
+    margin: 0;
+    color: var(--green-950);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 21px;
+    font-weight: 500;
+}
+
+.catalog-map-search p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+#vacancy-map {
+    width: 100%;
+    min-height: 320px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}
+
+.map-radius {
+    display: grid;
+    max-width: 420px;
+    gap: 8px;
+    color: var(--green-900);
+    font-size: 13px;
+}
+
+.map-radius input {
+    width: 100%;
+    accent-color: var(--green-800);
+}
+
 .catalog-filter-actions {
     display: flex;
     min-height: 46px;

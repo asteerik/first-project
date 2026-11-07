@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Вакансии — Работа для Души{% endblock %}
 
@@ -34,9 +35,32 @@
                     {% endfor %}
                 </select>
             </div>
+            <label class="catalog-remote-filter">
+                <input type="checkbox" name="remote" value="1"{% if remote %} checked{% endif %}>
+                <span>Включать удалённые вакансии</span>
+            </label>
+            <section class="catalog-map-search" aria-labelledby="map-search-heading">
+                <h2 id="map-search-heading">Поиск вакансий поблизости</h2>
+                <p>Выберите точку на карте или определите своё местоположение. Радиус — до 200 км.</p>
+                {% if yandex_maps_api_key %}
+                <button class="button" type="button" id="detect-location">Определить моё местоположение</button>
+                <div class="map-radius">
+                    <label for="map-radius">Радиус поиска: <strong id="radius-value">{{ radius }} км</strong></label>
+                    <input type="range" id="map-radius" min="1" max="200" value="{{ radius }}">
+                </div>
+                <div id="vacancy-map" aria-label="Выбор места поиска на карте"></div>
+                <p id="map-location" role="status">{% if latitude and longitude %}Выбранная точка: {{ latitude }}, {{ longitude }}{% else %}Нажмите на карту, чтобы выбрать точку{% endif %}</p>
+                {% else %}
+                <p class="form-hint" role="status">Для работы карты добавьте YANDEX_MAPS_API_KEY в файл .env.</p>
+                {% endif %}
+                <input type="hidden" name="latitude" id="latitude" value="{{ latitude }}">
+                <input type="hidden" name="longitude" id="longitude" value="{{ longitude }}">
+                <input type="hidden" name="radius" id="radius-input" value="{{ radius }}">
+                {% if location_error %}<p class="form-error" role="alert">{{ location_error }}</p>{% endif %}
+            </section>
             <div class="catalog-filter-actions">
                 <button class="button catalog-search-button" type="submit">Найти вакансии</button>
-                {% if query or region or category %}
+                {% if query or region or category or remote or latitude or longitude %}
                 <a class="catalog-reset-link" href="{% url 'jobs:list' %}">Сбросить</a>
                 {% endif %}
             </div>
@@ -67,6 +91,7 @@
                 <ul class="vacancy-meta">
                     <li>{{ vacancy.location }}</li>
                     <li><span class="vacancy-employment">{{ vacancy.get_employment_type_display }}</span></li>
+                    <li>{{ vacancy.get_work_format_display }}</li>
                 </ul>
             </div>
             <div class="vacancy-row__aside">
@@ -92,4 +117,8 @@
     {% endif %}
 </section>
 </section>
+{% if yandex_maps_api_key %}
+<script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key|urlencode }}&amp;lang=ru_RU" defer></script>
+<script src="{% static 'js/location-search.js' %}" defer></script>
+{% endif %}
 {% endblock %}
