@@ -741,8 +741,8 @@
 
 .catalog-filters {
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto;
-    align-items: end;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) minmax(220px, 1.1fr);
+    align-items: start;
     gap: 16px;
     padding: 20px;
     border: 1px solid var(--line);
@@ -803,7 +803,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 220px;
+    min-width: 0;
     min-height: 58px;
     padding: 10px 14px;
     border: 1px solid var(--line);
@@ -874,6 +874,7 @@
 
 .catalog-remote-filter__copy {
     display: grid;
+    min-width: 0;
     gap: 3px;
 }
 
