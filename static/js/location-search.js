@@ -5,11 +5,22 @@ document.addEventListener("DOMContentLoaded", function () {
     const radiusSlider = document.getElementById("map-radius");
     const radiusValue = document.getElementById("radius-value");
     const radiusInput = document.getElementById("radius-input");
-    const latitudeInput = document.getElementById("latitude");
-    const longitudeInput = document.getElementById("longitude");
+    const mapForm = mapElement.closest("form");
+    const latitudeInput = document.getElementById("latitude")
+        || (mapForm && mapForm.elements.namedItem("latitude"));
+    const longitudeInput = document.getElementById("longitude")
+        || (mapForm && mapForm.elements.namedItem("longitude"));
     const locationText = document.getElementById("map-location");
     const detectButton = document.getElementById("detect-location");
     const defaultCenter = [55.75, 37.61];
+
+    if (!latitudeInput || !longitudeInput) {
+        if (locationText) {
+            locationText.textContent = "Не удалось подключить поля координат карты.";
+        }
+        return;
+    }
+
     const savedLatitude = Number(latitudeInput.value);
     const savedLongitude = Number(longitudeInput.value);
     const hasSavedPoint = latitudeInput.value !== "" && longitudeInput.value !== "";
