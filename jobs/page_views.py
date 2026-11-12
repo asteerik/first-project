@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import F, FloatField, Q, Value
 from django.db.models.functions import ASin, Cast, Cos, Least, Radians, Sin, Sqrt
@@ -125,7 +124,6 @@ class VacancyListPage(TemplateView):
             longitude=longitude,
             radius=radius,
             location_error=location_error,
-            yandex_maps_api_key=settings.YANDEX_MAPS_API_KEY,
             region_suggestions=REGION_SUGGESTIONS,
             categories=Category.objects.filter(is_active=True),
             filter_query=extra_params.urlencode(),

@@ -1,5 +1,4 @@
 from django import forms
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
@@ -50,7 +49,7 @@ class VacancyForm(forms.ModelForm):
         max_value=90,
         max_digits=9,
         decimal_places=6,
-        widget=forms.HiddenInput(),
+        widget=forms.HiddenInput(attrs={"id": "latitude"}),
     )
     longitude = forms.DecimalField(
         label="Долгота точки вакансии",
@@ -59,7 +58,7 @@ class VacancyForm(forms.ModelForm):
         max_value=180,
         max_digits=9,
         decimal_places=6,
-        widget=forms.HiddenInput(),
+        widget=forms.HiddenInput(attrs={"id": "longitude"}),
     )
 
     class Meta:
@@ -220,11 +219,6 @@ class VacancyFormMixin(EmployerRequiredMixin):
 
     def get_form_kwargs(self):
         return {**super().get_form_kwargs(), "organizations": self.organizations}
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["yandex_maps_api_key"] = settings.YANDEX_MAPS_API_KEY
-        return context
 
     def form_valid(self, form):
         vacancy = form.save(commit=False)

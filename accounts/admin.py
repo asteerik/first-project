@@ -1,7 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib import messages
+from django.db import transaction
+from django.utils import timezone
 
 from .models import CandidateProfile, Organization, OrganizationMembership, User
+from jobs.models import ModerationLog, Vacancy
 
 
 @admin.register(User)
@@ -33,6 +37,103 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_filter = ("verification_status",)
     search_fields = ("name", "owner__email")
     readonly_fields = ("verification_status", "verification_note", "verified_at")
+    actions = ("approve_pending_organizations", "reject_pending_organizations")
+
+    @admin.action(description="Одобрить выбранные организации")
+    def approve_pending_organizations(self, request, queryset):
+        with transaction.atomic():
+            organizations = list(queryset.select_for_update())
+            if not organizations or any(
+                organization.verification_status != Organization.VerificationStatus.PENDING
+                for organization in organizations
+            ):
+                self.message_user(
+                    request,
+                    "Выберите организации только со статусом «На проверке».",
+                    level=messages.ERROR,
+                )
+                return
+
+            now = timezone.now()
+            for organization in organizations:
+                organization.verification_status = Organization.VerificationStatus.APPROVED
+                organization.verification_note = ""
+                organization.verified_at = now
+                organization.save(
+                    update_fields=[
+                        "verification_status",
+                        "verification_note",
+                        "verified_at",
+                        "updated_at",
+                    ]
+                )
+            ModerationLog.objects.bulk_create(
+                [
+                    ModerationLog(
+                        moderator=request.user,
+                        organization=organization,
+                        action="organizations_approve",
+                    )
+                    for organization in organizations
+                ]
+            )
+
+        self.message_user(
+            request,
+            f"Одобрено организаций: {len(organizations)}.",
+            level=messages.SUCCESS,
+        )
+
+    @admin.action(description="Отклонить выбранные организации")
+    def reject_pending_organizations(self, request, queryset):
+        with transaction.atomic():
+            organizations = list(queryset.select_for_update())
+            if not organizations or any(
+                organization.verification_status != Organization.VerificationStatus.PENDING
+                for organization in organizations
+            ):
+                self.message_user(
+                    request,
+                    "Выберите организации только со статусом «На проверке».",
+                    level=messages.ERROR,
+                )
+                return
+
+            now = timezone.now()
+            for organization in organizations:
+                organization.verification_status = Organization.VerificationStatus.REJECTED
+                organization.verification_note = "Отклонено администратором."
+                organization.verified_at = now
+                organization.save(
+                    update_fields=[
+                        "verification_status",
+                        "verification_note",
+                        "verified_at",
+                        "updated_at",
+                    ]
+                )
+                organization.vacancies.filter(status=Vacancy.Status.APPROVED).update(
+                    status=Vacancy.Status.PENDING,
+                    published_at=None,
+                    updated_at=now,
+                )
+            ModerationLog.objects.bulk_create(
+                [
+                    ModerationLog(
+                        moderator=request.user,
+                        organization=organization,
+                        action="organizations_reject",
+                        note=organization.verification_note,
+                    )
+                    for organization in organizations
+                ]
+            )
+
+        self.message_user(
+            request,
+            f"Отклонено организаций: {len(organizations)}.",
+            level=messages.SUCCESS,
+        )
 
 
 @admin.register(OrganizationMembership)

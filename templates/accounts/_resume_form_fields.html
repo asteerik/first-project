@@ -25,7 +25,6 @@
         <h2 id="resume-map-heading">Где вы ищете работу</h2>
         <p>Выберите точку на территории России и желаемый радиус поиска от 1 до 200 км. Точное местоположение не будет показано в публичном профиле.</p>
     </div>
-    {% if yandex_maps_api_key %}
     <button class="button" type="button" id="detect-location">Определить моё местоположение</button>
     <div class="map-radius">
         <label for="map-radius">Радиус: <strong id="radius-value">{{ form.preferred_radius_km.value|default:50 }} км</strong></label>
@@ -37,7 +36,9 @@
             value="{{ form.preferred_radius_km.value|default:50 }}"
         >
     </div>
+    {% include "includes/map_address_search.html" %}
     <div id="vacancy-map" aria-label="Выбор желаемого места работы на карте"></div>
+    <p id="map-error" class="form-error" role="alert" hidden></p>
     <p id="map-location" role="status">
         {% if form.latitude.value and form.longitude.value %}
         Выбранная точка: {{ form.latitude.value }}, {{ form.longitude.value }}
@@ -45,9 +46,6 @@
         Нажмите на карту, чтобы выбрать точку
         {% endif %}
     </p>
-    {% else %}
-    <p class="form-hint" role="status">Для выбора точки добавьте YANDEX_MAPS_API_KEY в файл .env. Радиус можно сохранить и без карты.</p>
-    {% endif %}
     {{ form.latitude }}
     {{ form.longitude }}
     {{ form.preferred_radius_km }}

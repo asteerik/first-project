@@ -2,6 +2,8 @@
 
 {% block title %}{% if object %}Изменить резюме{% else %}Новое резюме{% endif %} — Работа для Души{% endblock %}
 
+{% block map_assets %}{% include "includes/map_assets.html" %}{% endblock %}
+
 {% block content %}
 <section class="page-section container">
     <div class="resume-form-card">
@@ -24,8 +26,4 @@
 </section>
 {% load static %}
 <script src="{% static 'js/resume-form.js' %}" defer></script>
-{% if yandex_maps_api_key %}
-<script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key|urlencode }}&amp;lang=ru_RU" defer></script>
-<script src="{% static 'js/location-search.js' %}" defer></script>
-{% endif %}
 {% endblock %}

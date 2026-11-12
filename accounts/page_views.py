@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -159,11 +158,6 @@ class CandidateResumeFormPageMixin(CandidatePageMixin):
         kwargs = super().get_form_kwargs()
         kwargs["candidate_profile"] = self.get_candidate_profile()
         return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["yandex_maps_api_key"] = settings.YANDEX_MAPS_API_KEY
-        return context
 
 
 class ResumeListPage(CandidatePageMixin, TemplateView):

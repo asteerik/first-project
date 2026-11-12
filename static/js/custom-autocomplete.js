@@ -35,6 +35,23 @@
         let matches = [];
         let activeIndex = -1;
 
+        const updateListHeight = () => {
+            if (!input.hasAttribute("data-autocomplete-viewport") || listbox.hidden) {
+                return;
+            }
+            const viewport = window.visualViewport;
+            const viewportBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+            const availableHeight = Math.max(0, viewportBottom - listbox.getBoundingClientRect().top - 8);
+            listbox.style.setProperty("--city-list-available-height", `${availableHeight}px`);
+        };
+
+        if (input.hasAttribute("data-autocomplete-viewport")) {
+            window.addEventListener("scroll", updateListHeight, { passive: true });
+            window.addEventListener("resize", updateListHeight);
+            window.visualViewport?.addEventListener("resize", updateListHeight);
+            window.visualViewport?.addEventListener("scroll", updateListHeight);
+        }
+
         const render = () => {
             const query = input.value.trim().toLocaleLowerCase();
             matches = options.filter((option) =>
@@ -46,7 +63,7 @@
                 item.className = "custom-autocomplete__option";
                 item.id = `${listbox.id}-option-${index}`;
                 item.setAttribute("role", "option");
-                item.setAttribute("aria-selected", "false");
+                item.setAttribute("aria-selected", String(option === input.value.trim()));
                 item.textContent = option;
                 item.addEventListener("mouseenter", () => setActive(index));
                 item.addEventListener("mousedown", (event) => event.preventDefault());
@@ -58,6 +75,7 @@
             const isOpen = matches.length > 0;
             listbox.hidden = !isOpen;
             input.setAttribute("aria-expanded", String(isOpen));
+            updateListHeight();
         };
 
         const setActive = (index) => {
@@ -87,6 +105,11 @@
         };
 
         input.addEventListener("focus", render);
+        input.addEventListener("click", () => {
+            if (listbox.hidden) {
+                render();
+            }
+        });
         input.addEventListener("input", render);
         input.addEventListener("keydown", (event) => {
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {

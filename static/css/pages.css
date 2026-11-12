@@ -920,6 +920,38 @@
     border-radius: 8px;
 }
 
+.map-address-search {
+    display: grid;
+    gap: 6px;
+    max-width: 600px;
+}
+
+[data-saved-map-location] button[hidden] {
+    display: none;
+}
+
+.map-address-results {
+    display: grid;
+    gap: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.map-address-results button {
+    padding: 8px 10px;
+    border: 1px solid #e5e3d8;
+    border-radius: 6px;
+    background: #fff;
+    color: #315f54;
+    text-align: left;
+    cursor: pointer;
+}
+
+.map-address-results button:hover,
+.map-address-results button:focus-visible {
+    background: #e9eee5;
+}
+
 .map-radius {
     display: grid;
     max-width: 420px;
@@ -931,6 +963,57 @@
 .map-radius input {
     width: 100%;
     accent-color: var(--green-800);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .map-radius input[type="range"] {
+        height: 24px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .map-radius input[type="range"]::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 999px;
+        background: #dce5dc;
+    }
+
+    .map-radius input[type="range"]::-webkit-slider-thumb {
+        width: 18px;
+        height: 18px;
+        margin-top: -6px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        background: #315f54;
+        box-shadow: 0 1px 5px rgba(23, 60, 52, 0.3);
+        -webkit-appearance: none;
+    }
+
+    .map-radius input[type="range"]::-moz-range-track {
+        height: 6px;
+        border-radius: 999px;
+        background: #dce5dc;
+    }
+
+    .map-radius input[type="range"]::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        background: #315f54;
+        box-shadow: 0 1px 5px rgba(23, 60, 52, 0.3);
+    }
+
+    .map-radius input[type="range"]:focus-visible {
+        border-radius: 4px;
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+    }
 }
 
 .catalog-filter-actions {

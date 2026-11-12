@@ -1,4 +1,7 @@
 from django.contrib import admin
+from django.contrib import messages
+from django.db import transaction
+from django.utils import timezone
 
 from .models import Application, Category, Complaint, Favorite, ModerationLog, Vacancy
 
@@ -23,6 +26,110 @@ class VacancyAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
+    actions = ("approve_pending_vacancies", "reject_pending_vacancies")
+
+    @admin.action(description="Одобрить выбранные вакансии")
+    def approve_pending_vacancies(self, request, queryset):
+        with transaction.atomic():
+            vacancies = list(queryset.select_for_update().select_related("organization"))
+            if not vacancies or any(
+                vacancy.status != Vacancy.Status.PENDING
+                for vacancy in vacancies
+            ):
+                self.message_user(
+                    request,
+                    "Выберите вакансии только со статусом «На проверке».",
+                    level=messages.ERROR,
+                )
+                return
+            if any(
+                vacancy.organization.verification_status
+                != vacancy.organization.VerificationStatus.APPROVED
+                for vacancy in vacancies
+            ):
+                self.message_user(
+                    request,
+                    "Сначала необходимо проверить организации выбранных вакансий.",
+                    level=messages.ERROR,
+                )
+                return
+
+            now = timezone.now()
+            for vacancy in vacancies:
+                vacancy.status = Vacancy.Status.APPROVED
+                vacancy.moderation_note = ""
+                vacancy.published_at = now
+                vacancy.save(
+                    update_fields=[
+                        "status",
+                        "moderation_note",
+                        "published_at",
+                        "updated_at",
+                    ]
+                )
+            ModerationLog.objects.bulk_create(
+                [
+                    ModerationLog(
+                        moderator=request.user,
+                        vacancy=vacancy,
+                        action="vacancies_approve",
+                    )
+                    for vacancy in vacancies
+                ]
+            )
+
+        self.message_user(
+            request,
+            f"Опубликовано вакансий: {len(vacancies)}.",
+            level=messages.SUCCESS,
+        )
+
+    @admin.action(description="Отклонить выбранные вакансии")
+    def reject_pending_vacancies(self, request, queryset):
+        with transaction.atomic():
+            vacancies = list(queryset.select_for_update())
+            if not vacancies or any(
+                vacancy.status != Vacancy.Status.PENDING
+                for vacancy in vacancies
+            ):
+                self.message_user(
+                    request,
+                    "Выберите вакансии только со статусом «На проверке».",
+                    level=messages.ERROR,
+                )
+                return
+
+            now = timezone.now()
+            rejection_note = "Отклонено администратором."
+            for vacancy in vacancies:
+                vacancy.status = Vacancy.Status.REJECTED
+                vacancy.moderation_note = rejection_note
+                vacancy.published_at = None
+                vacancy.save(
+                    update_fields=[
+                        "status",
+                        "moderation_note",
+                        "published_at",
+                        "updated_at",
+                    ]
+                )
+            ModerationLog.objects.bulk_create(
+                [
+                    ModerationLog(
+                        moderator=request.user,
+                        vacancy=vacancy,
+                        action="vacancies_reject",
+                        note=rejection_note,
+                    )
+                    for vacancy in vacancies
+                ]
+            )
+
+        self.message_user(
+            request,
+            f"Отклонено вакансий: {len(vacancies)}.",
+            level=messages.SUCCESS,
+        )
 
 
 @admin.register(Application)

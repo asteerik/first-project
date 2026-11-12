@@ -3,6 +3,8 @@
 
 {% block title %}Вакансии — Работа для Души{% endblock %}
 
+{% block map_assets %}{% include "includes/map_assets.html" %}{% endblock %}
+
 {% block content %}
 <section class="catalog-page">
     <header class="catalog-header container">
@@ -19,13 +21,13 @@
                 <span>Должность или слово</span>
                 <input type="search" name="q" value="{{ query }}" placeholder="Например, педагог">
             </label>
-            <label class="catalog-filter">
-                <span>Город или регион</span>
-                <input type="search" name="region" value="{{ region }}" list="region-suggestions" placeholder="Например, Москва" autocomplete="off">
+            <div class="catalog-filter">
+                <label for="catalog-region">Город или регион</label>
+                <input id="catalog-region" type="search" name="region" value="{{ region }}" list="region-suggestions" data-custom-autocomplete="true" data-autocomplete-viewport placeholder="Например, Москва" autocomplete="off">
                 <datalist id="region-suggestions">
                     {% for suggestion in region_suggestions %}<option value="{{ suggestion }}">{% endfor %}
                 </datalist>
-            </label>
+            </div>
             <div class="catalog-filter">
                 <label for="catalog-category"><span>Направление</span></label>
                 <select class="js-custom-select" id="catalog-category" name="category">
@@ -53,17 +55,21 @@
             <section class="catalog-map-search" aria-labelledby="map-search-heading">
                 <h2 id="map-search-heading">Поиск вакансий поблизости</h2>
                 <p>Выберите точку на карте или определите своё местоположение. Радиус — до 200 км.</p>
-                {% if yandex_maps_api_key %}
+                <p>Выбранная вручную точка сохраняется в этом браузере для повторного поиска.</p>
                 <button class="button" type="button" id="detect-location">Определить моё местоположение</button>
+                <div data-saved-map-location>
+                    <button class="button" type="button" id="use-saved-location" hidden>Использовать сохранённую точку</button>
+                    <button class="button" type="button" id="forget-saved-location" hidden>Удалить сохранённую точку</button>
+                    <p id="saved-location-status" role="status"></p>
+                </div>
                 <div class="map-radius">
                     <label for="map-radius">Радиус поиска: <strong id="radius-value">{{ radius }} км</strong></label>
                     <input type="range" id="map-radius" min="1" max="200" value="{{ radius }}">
                 </div>
+                {% include "includes/map_address_search.html" %}
                 <div id="vacancy-map" aria-label="Выбор места поиска на карте"></div>
+                <p id="map-error" class="form-error" role="alert" hidden></p>
                 <p id="map-location" role="status">{% if latitude and longitude %}Выбранная точка: {{ latitude }}, {{ longitude }}{% else %}Нажмите на карту, чтобы выбрать точку{% endif %}</p>
-                {% else %}
-                <p class="form-hint" role="status">Для работы карты добавьте YANDEX_MAPS_API_KEY в файл .env.</p>
-                {% endif %}
                 <input type="hidden" name="latitude" id="latitude" value="{{ latitude }}">
                 <input type="hidden" name="longitude" id="longitude" value="{{ longitude }}">
                 <input type="hidden" name="radius" id="radius-input" value="{{ radius }}">
@@ -135,8 +141,4 @@
 </section>
 </section>
 <script src="{% static 'js/catalog-filters.js' %}" defer></script>
-{% if yandex_maps_api_key %}
-<script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key|urlencode }}&amp;lang=ru_RU" defer></script>
-<script src="{% static 'js/location-search.js' %}" defer></script>
-{% endif %}
 {% endblock %}

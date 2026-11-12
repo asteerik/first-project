@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import TemplateView
 
-from .page_views import HomeView, PlaceholderView
+from .page_views import AboutPage, HomeView, PlaceholderView
 from jobs.page_views import (
     ApplicationResumeDownloadPage,
     CandidateApplicationResponsePage,
@@ -74,7 +74,7 @@ accounts_pages = [
     ),
 ]
 info_pages = [
-    path("about/", TemplateView.as_view(template_name="pages/about.html"), name="about"),
+    path("about/", AboutPage.as_view(), name="about"),
     path("help/", PlaceholderView.as_view(title="Помощь"), name="help"),
     path("contacts/", PlaceholderView.as_view(title="Контакты"), name="contacts"),
 ]

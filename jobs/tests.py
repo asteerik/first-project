@@ -64,6 +64,44 @@ class RecruitmentApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 200, response.data)
 
+    def test_map_pages_use_leaflet_without_api_keys(self):
+        self.client.force_authenticate(None)
+        candidate = User.objects.create_user(
+            "map-candidate@example.test",
+            "Long-Test-Password-123!",
+            role=User.Role.CANDIDATE,
+        )
+        self.client.force_login(candidate)
+        for path in ("/vacancies/", "/resumes/new/"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, '<meta name="referrer" content="strict-origin-when-cross-origin">')
+                self.assertContains(response, "js/location-search.js?v=10")
+                self.assertContains(response, "leaflet@1.9.4")
+                self.assertContains(response, 'id="vacancy-map"')
+                self.assertContains(response, 'id="map-address"')
+                self.assertContains(response, 'id="latitude"')
+                self.assertContains(response, 'id="longitude"')
+                self.assertNotContains(response, "api-maps.yandex.ru")
+                self.assertNotContains(response, "geoapify")
+                self.assertEqual(response["Referrer-Policy"], "same-origin")
+
+        catalog = self.client.get("/vacancies/")
+        self.assertContains(catalog, 'id="use-saved-location" hidden')
+        self.assertContains(catalog, 'id="forget-saved-location" hidden')
+        self.assertContains(catalog, 'id="saved-location-status"')
+
+        self.client.force_login(self.employer)
+        response = self.client.get("/employer/vacancies/new/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<meta name="referrer" content="strict-origin-when-cross-origin">')
+        self.assertContains(response, "js/location-search.js?v=10")
+        self.assertContains(response, 'id="vacancy-map"')
+        self.assertContains(response, 'id="map-address"')
+        self.assertNotContains(response, "api-maps.yandex.ru")
+        self.assertNotContains(response, "geoapify")
+
     def test_candidate_can_search_and_apply_but_resume_visibility_is_respected(self):
         self.client.force_authenticate(None)
         response = self.client.get("/api/vacancies/?q=Помощник&location=Моск&salary_min=20000")
@@ -403,6 +441,11 @@ class RecruitmentApiTests(TestCase):
             "/vacancies/?latitude=55.75&longitude=37.61&radius=201"
         )
         self.assertContains(invalid_radius, "от 1 до 200 км")
+        incomplete_point = self.client.get("/vacancies/?latitude=55.75&radius=5")
+        self.assertContains(incomplete_point, "Укажите корректную точку на карте")
+        self.assertEqual(incomplete_point.context["page"].paginator.count, 0)
+        out_of_range_point = self.client.get("/vacancies/?latitude=91&longitude=37.61&radius=5")
+        self.assertContains(out_of_range_point, "Укажите корректную точку на карте")
 
         self.assertEqual(self.client.get("/api/vacancies/?remote=true").data["count"], 1)
         self.assertEqual(self.client.get("/api/vacancies/?remote=false").data["count"], 2)
@@ -432,6 +475,7 @@ class RecruitmentApiTests(TestCase):
         self.assertContains(response, "Республика Татарстан")
         self.assertContains(response, "Краснодарский край")
         self.assertContains(response, 'name="region"')
+        self.assertContains(response, 'list="region-suggestions" data-custom-autocomplete="true"')
         self.assertContains(response, 'name="remote"')
         self.assertContains(response, "catalog-filters.js")
         self.assertContains(response, "Поиск вакансий поблизости")
@@ -459,6 +503,9 @@ class RecruitmentApiTests(TestCase):
         self.assertContains(homepage, "Медицина и уход")
         self.assertContains(homepage, 'class="js-custom-select"')
         self.assertContains(homepage, "js/custom-select.js")
+        self.assertContains(homepage, "js/custom-autocomplete.js?v=4")
+        self.assertContains(homepage, "css/main.css?v=4")
+        self.assertContains(homepage, 'name="region" list="region-suggestions" data-custom-autocomplete="true"')
 
     def test_catalog_pages_show_only_published_vacancies(self):
         self.client.force_authenticate(None)
