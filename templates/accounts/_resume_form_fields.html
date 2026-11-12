@@ -25,7 +25,6 @@
         <h2 id="resume-map-heading">Где вы ищете работу</h2>
         <p>Выберите точку на территории России и желаемый радиус поиска от 1 до 200 км. Точное местоположение не будет показано в публичном профиле.</p>
     </div>
-    <button class="button" type="button" id="detect-location">Определить моё местоположение</button>
     <div class="map-radius">
         <label for="map-radius">Радиус: <strong id="radius-value">{{ form.preferred_radius_km.value|default:50 }} км</strong></label>
         <input
@@ -38,6 +37,7 @@
     </div>
     {% include "includes/map_address_search.html" %}
     <div id="vacancy-map" aria-label="Выбор желаемого места работы на карте"></div>
+    <a class="map-provider-link" id="open-map" href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">Открыть карту OpenStreetMap</a>
     <p id="map-error" class="form-error" role="alert" hidden></p>
     <p id="map-location" role="status">
         {% if form.latitude.value and form.longitude.value %}
@@ -97,6 +97,15 @@
     </div>
     <div class="resume-grid">
         {% include "accounts/_resume_field.html" with field=form.resume_visibility %}
+    </div>
+    <div class="resume-visibility-guide">
+        <h3>Кто сможет увидеть резюме</h3>
+        <ul>
+            <li><strong>Только мне:</strong> данные резюме и файл доступны только вам. Работодатель видит лишь имя, сам отклик и сопроводительное письмо.</li>
+            <li><strong>Работодателям после отклика:</strong> данные и файл выбранного резюме доступны работодателю организации, на вакансию которой вы откликнулись.</li>
+            <li><strong>Публичный профиль:</strong> данные резюме доступны посетителям сайта, а файл — работодателям, которым разрешён просмотр профиля.</li>
+        </ul>
+        <p>Правило применяется к этому резюме. Вы можете изменить его в любой момент.</p>
     </div>
 </section>
 

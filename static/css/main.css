@@ -357,6 +357,17 @@ svg {
     box-shadow: 0 10px 24px rgba(18, 54, 43, 0.15);
 }
 
+.button--secondary {
+    border-color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.button--secondary:hover {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.22);
+}
+
 .button:active {
     transform: translateY(0);
 }
@@ -1113,7 +1124,7 @@ html[data-theme="dark"] {
     --surface-hover: #202923;
     --select-hover: #2b3a31;
     --ink: #f2efe7;
-    --muted: #b2b5a9;
+    --muted: var(--gold-500);
     --line: #343e37;
     --button-ink: #17160f;
     --shadow: 0 20px 52px rgba(0, 0, 0, 0.24);
@@ -1138,7 +1149,7 @@ html[data-theme="dark"] .form-card h1,
 html[data-theme="dark"] .page-section h1,
 html[data-theme="dark"] .page-section h2,
 html[data-theme="dark"] .skip-link:focus {
-    color: var(--ink);
+    color: var(--gold-500);
 }
 
 html[data-theme="dark"] .button {
@@ -1487,5 +1498,120 @@ html[data-theme="dark"] .flash {
         transition-duration: 0.01ms !important;
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
+    }
+}
+
+.employer-home {
+    padding-block: 64px 78px;
+}
+
+.employer-home-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.employer-home-stats > div,
+.employer-home-vacancy {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: var(--card-radius);
+    background: var(--paper);
+}
+
+.employer-home-stats > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.employer-home-stats strong {
+    color: var(--green-900);
+    font-size: 28px;
+}
+
+.employer-home-stats span,
+.employer-home-vacancy p {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.employer-home-vacancies {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.employer-home-vacancy h3 {
+    margin: 0 0 5px;
+    color: var(--green-950);
+    font-size: 16px;
+}
+
+.employer-home-vacancy p {
+    margin: 0;
+}
+
+.employer-home-status {
+    flex: none;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.employer-home-status--approved {
+    color: var(--green-800);
+}
+
+.employer-home-status--pending {
+    color: var(--gold-500);
+}
+
+.employer-home-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.employer-home-actions .button {
+    min-height: 52px;
+    padding: 0 24px;
+}
+
+.employer-home-actions .button--secondary {
+    border-color: rgba(255, 255, 255, 0.72);
+}
+
+@media (max-width: 700px) {
+    .employer-home {
+        padding-block: 48px 58px;
+    }
+
+    .employer-home-stats {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .employer-home-stats > div {
+        flex-direction: row;
+        align-items: center;
+    }
+}
+
+@media (max-width: 560px) {
+    .employer-home-actions {
+        flex-direction: column;
+    }
+
+    .employer-home-actions .button {
+        width: 100%;
     }
 }

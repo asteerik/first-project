@@ -179,7 +179,17 @@ class EmployerDashboard(EmployerRequiredMixin, ListView):
         if selected_status not in status_by_key:
             selected_status = "new"
         context["selected_application_status"] = selected_status
-        context["applications"] = applications.filter(status=status_by_key[selected_status])
+        application_query = self.request.GET.get("q", "").strip()[:120]
+        filtered_applications = applications.filter(status=status_by_key[selected_status])
+        if application_query:
+            filtered_applications = filtered_applications.filter(
+                Q(candidate__full_name__icontains=application_query)
+                | Q(resume__desired_position__icontains=application_query)
+                | Q(vacancy__title__icontains=application_query)
+                | Q(vacancy__organization__name__icontains=application_query)
+            )
+        context["application_query"] = application_query
+        context["applications"] = filtered_applications
         return context
 
 

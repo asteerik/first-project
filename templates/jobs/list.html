@@ -37,6 +37,31 @@
                     {% endfor %}
                 </select>
             </div>
+            <label class="catalog-filter">
+                <span>Тип занятости</span>
+                <select class="js-custom-select" name="employment_type">
+                    <option value="">Любой</option>
+                    {% for value, label in employment_types %}
+                    <option value="{{ value }}"{% if employment_type == value %} selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="catalog-filter">
+                <span>Зарплата от, ₽</span>
+                <input type="number" name="salary_min" min="0" max="100000000" step="1000" value="{{ salary_min }}" inputmode="numeric">
+            </label>
+            <label class="catalog-filter">
+                <span>Зарплата до, ₽</span>
+                <input type="number" name="salary_max" min="0" max="100000000" step="1000" value="{{ salary_max }}" inputmode="numeric">
+            </label>
+            <label class="catalog-filter">
+                <span>Сортировка</span>
+                <select class="js-custom-select" name="sort">
+                    <option value="newest"{% if sort == "newest" %} selected{% endif %}>Сначала новые</option>
+                    <option value="salary_asc"{% if sort == "salary_asc" %} selected{% endif %}>Сначала с меньшей зарплатой</option>
+                    <option value="salary_desc"{% if sort == "salary_desc" %} selected{% endif %}>Сначала с большей зарплатой</option>
+                </select>
+            </label>
             <label class="catalog-remote-filter{% if remote %} is-enabled{% endif %}" for="catalog-remote">
                 <input type="checkbox" id="catalog-remote" name="remote" value="1"{% if remote %} checked{% endif %}>
                 {% if remote_filter and not remote %}<input type="hidden" name="remote" value="0" data-remote-off>{% endif %}
@@ -54,9 +79,8 @@
             </label>
             <section class="catalog-map-search" aria-labelledby="map-search-heading">
                 <h2 id="map-search-heading">Поиск вакансий поблизости</h2>
-                <p>Выберите точку на карте или определите своё местоположение. Радиус — до 200 км.</p>
+                <p>Выберите точку на карте или найдите адрес. Радиус — до 200 км.</p>
                 <p>Выбранная вручную точка сохраняется в этом браузере для повторного поиска.</p>
-                <button class="button" type="button" id="detect-location">Определить моё местоположение</button>
                 <div data-saved-map-location>
                     <button class="button" type="button" id="use-saved-location" hidden>Использовать сохранённую точку</button>
                     <button class="button" type="button" id="forget-saved-location" hidden>Удалить сохранённую точку</button>
@@ -68,6 +92,16 @@
                 </div>
                 {% include "includes/map_address_search.html" %}
                 <div id="vacancy-map" aria-label="Выбор места поиска на карте"></div>
+                <a class="map-provider-link" id="open-map" href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">Открыть карту OpenStreetMap</a>
+                <p id="map-vacancy-status" role="status">
+                    {% if map_vacancy_count %}
+                        На карте отмечено вакансий: {{ map_vacancy_count }}.
+                        {% if map_vacancies_truncated %}Показаны первые 500.{% endif %}
+                    {% else %}
+                        У опубликованных вакансий пока нет точек на карте.
+                    {% endif %}
+                </p>
+                {{ map_vacancies|json_script:"vacancy-map-markers" }}
                 <p id="map-error" class="form-error" role="alert" hidden></p>
                 <p id="map-location" role="status">{% if latitude and longitude %}Выбранная точка: {{ latitude }}, {{ longitude }}{% else %}Нажмите на карту, чтобы выбрать точку{% endif %}</p>
                 <input type="hidden" name="latitude" id="latitude" value="{{ latitude }}">
@@ -83,10 +117,11 @@
                     </svg>
                     <span>Найти вакансии</span>
                 </button>
-                {% if query or region or category or remote_filter or latitude or longitude %}
+                {% if query or region or category or employment_type or salary_min or salary_max or sort != "newest" or remote_filter or latitude or longitude %}
                 <a class="catalog-reset-link" href="{% url 'jobs:list' %}">Сбросить</a>
                 {% endif %}
             </div>
+            {% if filter_error %}<p class="form-error" role="alert">{{ filter_error }}</p>{% endif %}
         </form>
     </div>
 
@@ -139,6 +174,7 @@
     </div>
     {% endif %}
 </section>
+{% if map_vacancies_truncated %}<p class="form-hint container">На карте показаны первые 500 вакансий из {{ map_vacancy_count }} подходящих.</p>{% endif %}
 </section>
 <script src="{% static 'js/catalog-filters.js' %}" defer></script>
 {% endblock %}

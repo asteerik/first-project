@@ -14,8 +14,11 @@ from .views import (
     VacancyDetailView,
     VacancyListCreateView,
 )
+from .map_views import MapAddressSuggestionsView, MapReverseGeocodeView
 
 urlpatterns = [
+    path("map/address-suggestions/", MapAddressSuggestionsView.as_view(), name="map_address_suggestions"),
+    path("map/reverse-geocode/", MapReverseGeocodeView.as_view(), name="map_reverse_geocode"),
     path("categories/", CategoryListView.as_view(), name="categories"),
     path("vacancies/", VacancyListCreateView.as_view(), name="vacancies"),
     path("vacancies/<int:pk>/", VacancyDetailView.as_view(), name="vacancy_detail"),

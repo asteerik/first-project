@@ -1,8 +1,95 @@
-from django.test import TestCase
+import io
+import json
+from unittest.mock import patch
+
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from accounts.models import CandidateResume, Organization, User
+from accounts.models import CandidateProfile, CandidateResume, Organization, User
 from jobs.models import Application, Category, ModerationLog, Vacancy
+
+
+class MapGeocodingApiTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    @override_settings(DADATA_API_KEY="")
+    def test_address_search_reports_missing_dadata_key(self):
+        response = self.client.get(
+            "/api/map/address-suggestions/",
+            {"q": "Сергиев Посад, улица Толстого, 21"},
+        )
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.data["code"], "not_configured")
+
+    @override_settings(DADATA_API_KEY="test-token")
+    @patch("jobs.map_views.urlopen")
+    def test_address_search_returns_only_russian_suggestions(self, mock_urlopen):
+        mock_urlopen.return_value = io.BytesIO(
+            json.dumps(
+                {
+                    "suggestions": [
+                        {
+                            "value": "Россия, г Сергиев Посад, ул Толстого, д 21",
+                            "data": {
+                                "country_iso_code": "RU",
+                                "geo_lat": "56.3",
+                                "geo_lon": "38.1",
+                            },
+                        },
+                        {
+                            "value": "Somewhere else",
+                            "data": {
+                                "country_iso_code": "US",
+                                "geo_lat": "40",
+                                "geo_lon": "-73",
+                            },
+                        },
+                    ]
+                }
+            ).encode("utf-8")
+        )
+        response = self.client.get(
+            "/api/map/address-suggestions/",
+            {"q": "Сергиев Посад, улица Толстого, 21"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["suggestions"],
+            [
+                {
+                    "label": "Россия, г Сергиев Посад, ул Толстого, д 21",
+                    "lat": 56.3,
+                    "lon": 38.1,
+                }
+            ],
+        )
+        request = mock_urlopen.call_args.args[0]
+        self.assertEqual(request.get_header("Authorization"), "Token test-token")
+        self.assertEqual(json.loads(request.data)["locations"], [{"country_iso_code": "RU"}])
+
+    @override_settings(DADATA_API_KEY="test-token")
+    @patch("jobs.map_views.urlopen")
+    def test_reverse_geocode_returns_russian_address(self, mock_urlopen):
+        mock_urlopen.return_value = io.BytesIO(
+            json.dumps(
+                {
+                    "suggestions": [
+                        {
+                            "value": "Россия, г Сергиев Посад, ул Толстого, д 21",
+                            "data": {"country_iso_code": "RU"},
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+        )
+        response = self.client.get(
+            "/api/map/reverse-geocode/",
+            {"lat": "56.3", "lon": "38.1"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["country_code"], "RU")
+        self.assertEqual(response.data["address"], "Россия, г Сергиев Посад, ул Толстого, д 21")
 
 
 class RecruitmentApiTests(TestCase):
@@ -64,7 +151,7 @@ class RecruitmentApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 200, response.data)
 
-    def test_map_pages_use_leaflet_without_api_keys(self):
+    def test_map_pages_use_openstreetmap_and_offer_manual_or_device_location(self):
         self.client.force_authenticate(None)
         candidate = User.objects.create_user(
             "map-candidate@example.test",
@@ -77,7 +164,7 @@ class RecruitmentApiTests(TestCase):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, '<meta name="referrer" content="strict-origin-when-cross-origin">')
-                self.assertContains(response, "js/location-search.js?v=10")
+                self.assertContains(response, "js/location-search.js?v=14")
                 self.assertContains(response, "leaflet@1.9.4")
                 self.assertContains(response, 'id="vacancy-map"')
                 self.assertContains(response, 'id="map-address"')
@@ -85,6 +172,8 @@ class RecruitmentApiTests(TestCase):
                 self.assertContains(response, 'id="longitude"')
                 self.assertNotContains(response, "api-maps.yandex.ru")
                 self.assertNotContains(response, "geoapify")
+                self.assertContains(response, 'id="detect-location"')
+                self.assertContains(response, 'id="geolocation-status"')
                 self.assertEqual(response["Referrer-Policy"], "same-origin")
 
         catalog = self.client.get("/vacancies/")
@@ -96,11 +185,26 @@ class RecruitmentApiTests(TestCase):
         response = self.client.get("/employer/vacancies/new/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="referrer" content="strict-origin-when-cross-origin">')
-        self.assertContains(response, "js/location-search.js?v=10")
+        self.assertContains(response, "js/location-search.js?v=14")
         self.assertContains(response, 'id="vacancy-map"')
         self.assertContains(response, 'id="map-address"')
+        self.assertContains(response, 'id="detect-location"')
+        self.assertContains(response, 'id="geolocation-status"')
         self.assertNotContains(response, "api-maps.yandex.ru")
         self.assertNotContains(response, "geoapify")
+
+    def test_employer_homepage_shows_recruitment_dashboard_instead_of_seeker_search(self):
+        self.client.force_login(self.employer)
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Найдите сотрудников")
+        self.assertContains(response, "Ваши вакансии и отклики")
+        self.assertContains(response, "опубликовано")
+        self.assertContains(response, "откликов")
+        self.assertContains(response, self.vacancy.title)
+        self.assertContains(response, 'href="/employer/vacancies/new/"')
+        self.assertNotContains(response, 'class="hero-search" action="/vacancies/"')
+        self.assertNotContains(response, "Создание резюме")
 
     def test_candidate_can_search_and_apply_but_resume_visibility_is_respected(self):
         self.client.force_authenticate(None)
@@ -415,12 +519,22 @@ class RecruitmentApiTests(TestCase):
         self.assertContains(nearby, self.vacancy.title)
         self.assertNotContains(nearby, distant_vacancy.title)
         self.assertNotContains(nearby, remote_vacancy.title)
+        self.assertEqual(
+            [item["title"] for item in nearby.context["map_vacancies"]],
+            [self.vacancy.title],
+        )
+        self.assertEqual(nearby.context["map_vacancy_count"], 1)
+        self.assertContains(nearby, 'id="vacancy-map-markers"')
         nearby_and_remote = self.client.get(
             "/vacancies/?latitude=55.75&longitude=37.61&radius=5&remote=1"
         )
         self.assertContains(nearby_and_remote, remote_vacancy.title)
         self.assertContains(nearby_and_remote, self.vacancy.title)
         self.assertNotContains(nearby_and_remote, distant_vacancy.title)
+        self.assertEqual(
+            [item["title"] for item in nearby_and_remote.context["map_vacancies"]],
+            [self.vacancy.title],
+        )
         self.assertContains(self.client.get("/vacancies/?remote=1"), remote_vacancy.title)
         self.assertContains(
             self.client.get("/vacancies/?remote=1"),
@@ -469,6 +583,151 @@ class RecruitmentApiTests(TestCase):
         )
         self.assertEqual(incomplete_coordinates.status_code, 400)
 
+    def test_site_catalog_filters_by_employment_salary_sorts_and_preserves_filters(self):
+        lower_salary = Vacancy.objects.create(
+            organization=self.organization,
+            category=self.category,
+            created_by=self.employer,
+            title="Волонтёр с вознаграждением",
+            description="Подробное описание вакансии волонтёра.",
+            location="Москва",
+            employment_type=Vacancy.EmploymentType.VOLUNTEER,
+            salary_min=10000,
+            salary_max=30000,
+            status=Vacancy.Status.APPROVED,
+        )
+        higher_salary = Vacancy.objects.create(
+            organization=self.organization,
+            category=self.category,
+            created_by=self.employer,
+            title="Опытный помощник",
+            description="Подробное описание вакансии помощника.",
+            location="Москва",
+            employment_type=Vacancy.EmploymentType.PART_TIME,
+            salary_min=80000,
+            salary_max=100000,
+            status=Vacancy.Status.APPROVED,
+        )
+
+        filtered = self.client.get(
+            "/vacancies/?employment_type=volunteer&salary_min=25000&salary_max=35000"
+        )
+        self.assertEqual(filtered.context["page"].paginator.count, 1)
+        self.assertContains(filtered, lower_salary.title)
+        self.assertNotContains(filtered, self.vacancy.title)
+
+        minimum_sort = self.client.get("/vacancies/?sort=salary_asc")
+        self.assertEqual(minimum_sort.context["page"].object_list[0], lower_salary)
+        maximum_sort = self.client.get("/vacancies/?sort=salary_desc")
+        self.assertEqual(maximum_sort.context["page"].object_list[0], higher_salary)
+
+        invalid_salary = self.client.get("/vacancies/?salary_min=60000&salary_max=10000")
+        self.assertEqual(invalid_salary.context["page"].paginator.count, 0)
+        self.assertContains(invalid_salary, "не может быть больше")
+
+        for index in range(10):
+            Vacancy.objects.create(
+                organization=self.organization,
+                category=self.category,
+                created_by=self.employer,
+                title=f"Волонтёр {index}",
+                description=f"Описание подходящей вакансии волонтёра {index}.",
+                location="Москва",
+                employment_type=Vacancy.EmploymentType.VOLUNTEER,
+                salary_min=20000 + index,
+                salary_max=30000 + index,
+                status=Vacancy.Status.APPROVED,
+            )
+        page = self.client.get(
+            "/vacancies/?sort=salary_asc&employment_type=volunteer&region=moscow"
+        )
+        self.assertContains(
+            page,
+            "sort=salary_asc&amp;employment_type=volunteer&amp;region=moscow&amp;page=2",
+            html=False,
+        )
+
+    def test_selected_resume_data_and_file_obey_resume_visibility(self):
+        from django.test import Client
+
+        candidate = self.register(
+            "resume-privacy@example.test",
+            "candidate",
+            full_name="Соискатель приватности",
+        )
+        resume = CandidateResume.objects.create(
+            candidate=candidate.candidate_profile,
+            title="Закрытое резюме",
+            desired_position="Специалист",
+            experience="Только личные сведения",
+        )
+        application = Application.objects.create(
+            vacancy=self.vacancy,
+            candidate=candidate.candidate_profile,
+            resume=resume,
+        )
+        employer_web = Client()
+        employer_web.force_login(self.employer)
+        self.assertEqual(
+            employer_web.get(f"/employer/applications/{application.pk}/resume/").status_code,
+            404,
+        )
+        self.client.force_authenticate(self.employer)
+        hidden = self.client.get("/api/applications/")
+        self.assertIsNone(hidden.data["results"][0]["selected_resume"])
+
+        resume.resume_visibility = CandidateProfile.ResumeVisibility.AFTER_APPLICATION
+        resume.save(update_fields=["resume_visibility"])
+        visible = self.client.get("/api/applications/")
+        self.assertEqual(
+            visible.data["results"][0]["selected_resume"]["experience"],
+            "Только личные сведения",
+        )
+
+    def test_employer_dashboard_search_filters_applications_and_shows_moderation_state(self):
+        from django.test import Client
+
+        candidate = self.register(
+            "dashboard-search@example.test",
+            "candidate",
+            full_name="Иван Педагогов",
+        )
+        Application.objects.create(
+            vacancy=self.vacancy,
+            candidate=candidate.candidate_profile,
+        )
+        self.vacancy.status = Vacancy.Status.PENDING
+        self.vacancy.save(update_fields=["status"])
+        web = Client()
+        web.force_login(self.employer)
+
+        result = web.get("/employer/?applications=new&q=Иван")
+        self.assertContains(result, "Иван Педагогов")
+        self.assertNotContains(result, "Тестовый соискатель")
+        self.assertContains(result, "ожидает проверки модератором")
+        self.assertContains(result, 'name="applications" value="new"')
+
+        self.vacancy.status = Vacancy.Status.REJECTED
+        self.vacancy.moderation_note = "Добавьте условия графика работы."
+        self.vacancy.save(update_fields=["status", "moderation_note"])
+        rejected = web.get("/employer/")
+        self.assertContains(rejected, "Добавьте условия графика работы.")
+        self.assertContains(rejected, "Вакансия отклонена")
+
+    def test_resume_visibility_explanation_is_shown_on_resume_form(self):
+        candidate = self.register(
+            "resume-guide@example.test",
+            "candidate",
+            full_name="Пользователь резюме",
+        )
+        web = self.client
+        web.force_login(candidate)
+        response = web.get("/resumes/new/")
+        self.assertContains(response, "Кто сможет увидеть резюме")
+        self.assertContains(response, "Работодателям после отклика")
+        self.assertContains(response, "Публичный профиль")
+        self.assertContains(response, "Правило применяется к этому резюме")
+
     def test_region_suggestions_and_primary_categories_are_available_in_site_filters(self):
         response = self.client.get("/vacancies/")
         self.assertEqual(response.status_code, 200)
@@ -504,7 +763,8 @@ class RecruitmentApiTests(TestCase):
         self.assertContains(homepage, 'class="js-custom-select"')
         self.assertContains(homepage, "js/custom-select.js")
         self.assertContains(homepage, "js/custom-autocomplete.js?v=4")
-        self.assertContains(homepage, "css/main.css?v=4")
+        self.assertContains(homepage, "css/main.css?v=5")
+        self.assertContains(homepage, 'property="og:type" content="website"')
         self.assertContains(homepage, 'name="region" list="region-suggestions" data-custom-autocomplete="true"')
 
     def test_catalog_pages_show_only_published_vacancies(self):
@@ -529,9 +789,30 @@ class RecruitmentApiTests(TestCase):
         self.assertContains(detail, 'aria-label="Хлебные крошки"')
         self.assertContains(detail, 'aria-label="Условия вакансии"')
         self.assertContains(detail, "Откликнуться на вакансию")
+        self.assertContains(detail, 'property="og:type" content="article"')
+        self.assertContains(detail, '<link rel="canonical"')
         self.assertContains(detail, '<ul class="vacancy-requirements">', html=False)
         draft = Vacancy.objects.get(title="Черновик не должен быть виден")
         self.assertEqual(self.client.get(f"/vacancies/{draft.pk}/").status_code, 404)
+
+        unverified_organization = Organization.objects.create(
+            owner=self.employer,
+            name="Организация на проверке",
+            verification_status=Organization.VerificationStatus.PENDING,
+        )
+        hidden_vacancy = Vacancy.objects.create(
+            organization=unverified_organization,
+            category=self.category,
+            created_by=self.employer,
+            title="Вакансия непроверенной организации",
+            description="Описание вакансии непроверенной организации.",
+            location="Москва",
+            latitude=55.75,
+            longitude=37.61,
+            status=Vacancy.Status.APPROVED,
+        )
+        self.assertNotContains(self.client.get("/vacancies/"), hidden_vacancy.title)
+        self.assertEqual(self.client.get(f"/vacancies/{hidden_vacancy.pk}/").status_code, 404)
 
     def test_candidate_can_send_a_web_application_once(self):
         from django.test import Client

@@ -12,6 +12,7 @@ if not SECRET_KEY:
     raise RuntimeError("Set DJANGO_SECRET_KEY in the environment before starting Django.")
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() in {"1", "true", "yes"}
+DADATA_API_KEY = os.environ.get("DADATA_API_KEY", "")
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")

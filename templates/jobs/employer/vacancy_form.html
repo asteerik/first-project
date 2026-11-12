@@ -15,9 +15,9 @@
             <section class="catalog-map-search" aria-labelledby="vacancy-map-heading">
                 <h2 id="vacancy-map-heading">Местоположение вакансии</h2>
                 <p>Выберите точку на карте, чтобы соискатели могли найти вакансию поблизости.</p>
-                <button class="button" type="button" id="detect-location">Определить моё местоположение</button>
                 {% include "includes/map_address_search.html" %}
                 <div id="vacancy-map" aria-label="Выбор местоположения вакансии"></div>
+                <a class="map-provider-link" id="open-map" href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">Открыть карту OpenStreetMap</a>
                 <p id="map-error" class="form-error" role="alert" hidden></p>
                 <p id="map-location" role="status">Нажмите на карту, чтобы выбрать точку</p>
             </section>

@@ -1,6 +1,7 @@
+from django.db.models import Q
 from rest_framework.permissions import BasePermission
 
-from .models import Organization, OrganizationMembership, User
+from .models import CandidateProfile, Organization, OrganizationMembership, User
 
 
 def has_organization_access(user, organization, managers_only=False):
@@ -49,3 +50,20 @@ def user_can_view_resume(user, profile):
     return profile.applications.filter(vacancy__organization__memberships__user=user).exists() or (
         profile.applications.filter(vacancy__organization__owner=user).exists()
     )
+
+
+def user_can_view_candidate_resume(user, resume):
+    if resume is None:
+        return False
+    if user.is_authenticated and resume.candidate.user_id == user.pk:
+        return True
+    if resume.resume_visibility == CandidateProfile.ResumeVisibility.PUBLIC:
+        return True
+    if resume.resume_visibility != CandidateProfile.ResumeVisibility.AFTER_APPLICATION:
+        return False
+    if not user.is_authenticated or user.role != User.Role.EMPLOYER:
+        return False
+    return resume.applications.filter(
+        Q(vacancy__organization__memberships__user=user)
+        | Q(vacancy__organization__owner=user)
+    ).exists()

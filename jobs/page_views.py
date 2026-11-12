@@ -11,7 +11,7 @@ from django.views.generic import FormView, ListView, TemplateView
 from rest_framework.exceptions import ValidationError
 
 from accounts.models import CandidateProfile, CandidateResume, Organization, User
-from accounts.permissions import has_organization_access
+from accounts.permissions import has_organization_access, user_can_view_candidate_resume
 
 from .forms import ApplicationForm
 from .models import Application, Category, Vacancy
@@ -23,7 +23,10 @@ EARTH_RADIUS_KM = 6371.0
 
 
 def published_vacancies():
-    return Vacancy.objects.filter(status=Vacancy.Status.APPROVED).select_related("organization", "category")
+    return Vacancy.objects.filter(
+        status=Vacancy.Status.APPROVED,
+        organization__verification_status=Organization.VerificationStatus.APPROVED,
+    ).select_related("organization", "category")
 
 
 def filter_vacancies_by_radius(queryset, latitude, longitude, radius):
@@ -57,12 +60,17 @@ class VacancyListPage(TemplateView):
         query = params.get("q", "").strip()
         region = params.get("region", "").strip()
         category = params.get("category", "").strip()
+        employment_type = params.get("employment_type", "").strip()
+        salary_min = params.get("salary_min", "").strip()
+        salary_max = params.get("salary_max", "").strip()
+        sort = params.get("sort", "newest").strip()
         remote_filter = params.get("remote", "")
         remote = remote_filter == "1"
         latitude = params.get("latitude", "").strip()
         longitude = params.get("longitude", "").strip()
         radius = params.get("radius", "50").strip()
         location_error = ""
+        filter_error = ""
 
         queryset = published_vacancies()
         if query:
@@ -78,6 +86,26 @@ class VacancyListPage(TemplateView):
                 region = ""
         if category:
             queryset = queryset.filter(category__slug=category)
+        if employment_type:
+            if employment_type in Vacancy.EmploymentType.values:
+                queryset = queryset.filter(employment_type=employment_type)
+            else:
+                filter_error = "Выберите корректный тип занятости."
+        try:
+            minimum_salary = int(salary_min.replace("\u00a0", "").replace("\u202f", "").replace(" ", "")) if salary_min else None
+            maximum_salary = int(salary_max.replace("\u00a0", "").replace("\u202f", "").replace(" ", "")) if salary_max else None
+            if any(value is not None and not 0 <= value <= 100_000_000 for value in (minimum_salary, maximum_salary)):
+                raise ValueError
+            if minimum_salary is not None and maximum_salary is not None and minimum_salary > maximum_salary:
+                filter_error = "Зарплата «от» не может быть больше зарплаты «до»."
+            elif minimum_salary is not None:
+                queryset = queryset.filter(Q(salary_max__gte=minimum_salary) | Q(salary_max__isnull=True))
+            if maximum_salary is not None:
+                queryset = queryset.filter(Q(salary_min__lte=maximum_salary) | Q(salary_min__isnull=True))
+        except ValueError:
+            filter_error = "Укажите зарплату от 0 до 100 000 000 рублей."
+        if filter_error:
+            queryset = queryset.none()
         if remote and not (latitude or longitude):
             queryset = queryset.filter(work_format=Vacancy.WorkFormat.REMOTE)
         elif latitude or longitude:
@@ -109,6 +137,40 @@ class VacancyListPage(TemplateView):
                 else:
                     queryset = nearby
 
+        sort_options = {
+            "newest": ("-published_at", "-created_at"),
+            "salary_asc": (F("salary_min").asc(nulls_last=True), "-published_at", "-created_at"),
+            "salary_desc": (F("salary_max").desc(nulls_last=True), "-published_at", "-created_at"),
+        }
+        if sort not in sort_options:
+            sort = "newest"
+        queryset = queryset.order_by(*sort_options[sort])
+
+        map_vacancy_count = queryset.filter(
+            latitude__isnull=False,
+            longitude__isnull=False,
+        ).count()
+        map_vacancies = [
+            {
+                "title": item["title"],
+                "organization": item["organization__name"],
+                "location": item["location"],
+                "latitude": float(item["latitude"]),
+                "longitude": float(item["longitude"]),
+                "url": reverse("jobs:detail", kwargs={"pk": item["pk"]}),
+            }
+            for item in queryset.filter(
+                latitude__isnull=False,
+                longitude__isnull=False,
+            ).values(
+                "pk",
+                "title",
+                "organization__name",
+                "location",
+                "latitude",
+                "longitude",
+            )[:500]
+        ]
         page = Paginator(queryset, PAGE_SIZE).get_page(params.get("page"))
         extra_params = params.copy()
         extra_params.pop("page", None)
@@ -118,12 +180,21 @@ class VacancyListPage(TemplateView):
             query=query,
             region=region,
             category=category,
+            employment_type=employment_type,
+            employment_types=Vacancy.EmploymentType.choices,
+            salary_min=salary_min,
+            salary_max=salary_max,
+            sort=sort,
+            filter_error=filter_error,
             remote=remote,
             remote_filter=bool(remote_filter),
             latitude=latitude,
             longitude=longitude,
             radius=radius,
             location_error=location_error,
+            map_vacancies=map_vacancies,
+            map_vacancy_count=map_vacancy_count,
+            map_vacancies_truncated=map_vacancy_count > len(map_vacancies),
             region_suggestions=REGION_SUGGESTIONS,
             categories=Category.objects.filter(is_active=True),
             filter_query=extra_params.urlencode(),
@@ -153,6 +224,9 @@ class VacancyDetailPage(TemplateView):
         context.update(
             nav_current="jobs",
             vacancy=vacancy,
+            canonical_url=self.request.build_absolute_uri(
+                reverse("jobs:detail", kwargs={"pk": vacancy.pk})
+            ),
             requirement_lines=[
                 line.strip() for line in vacancy.requirements.splitlines() if line.strip()
             ],
@@ -247,6 +321,7 @@ class ApplicationResumeDownloadPage(LoginRequiredMixin, View):
         is_employer = (
             request.user.role == User.Role.EMPLOYER
             and has_organization_access(request.user, application.vacancy.organization)
+            and user_can_view_candidate_resume(request.user, application.resume)
         )
         if not (is_candidate or is_employer):
             raise Http404

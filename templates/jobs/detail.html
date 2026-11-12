@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 
 {% block title %}{{ vacancy.title }} — Работа для Души{% endblock %}
+{% block page_metadata %}
+<meta name="description" content="{{ vacancy.description|striptags|truncatechars:155 }}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ vacancy.title }} — Работа для Души">
+<meta property="og:description" content="{{ vacancy.description|striptags|truncatechars:155 }}">
+<meta property="og:url" content="{{ canonical_url }}">
+<link rel="canonical" href="{{ canonical_url }}">
+{% endblock %}
 
 {% block content %}
 <section class="page-section container vacancy-detail-page">
