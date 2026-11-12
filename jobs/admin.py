@@ -1,7 +1,8 @@
-from django.contrib import admin
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.db import transaction
 from django.utils import timezone
+
+from accounts.models import Organization
 
 from .models import Application, Category, Complaint, Favorite, ModerationLog, Vacancy
 

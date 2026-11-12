@@ -1,11 +1,11 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
 
-from .models import CandidateProfile, Organization, OrganizationMembership, User
 from jobs.models import ModerationLog, Vacancy
+
+from .models import CandidateProfile, Organization, OrganizationMembership, User
 
 
 @admin.register(User)
