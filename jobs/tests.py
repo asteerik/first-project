@@ -504,7 +504,7 @@ class RecruitmentApiTests(TestCase):
         self.assertContains(homepage, 'class="js-custom-select"')
         self.assertContains(homepage, "js/custom-select.js")
         self.assertContains(homepage, "js/custom-autocomplete.js?v=4")
-        self.assertContains(homepage, "css/main.css?v=4")
+        self.assertContains(homepage, "css/main.css?v=7")
         self.assertContains(homepage, 'name="region" list="region-suggestions" data-custom-autocomplete="true"')
 
     def test_catalog_pages_show_only_published_vacancies(self):
