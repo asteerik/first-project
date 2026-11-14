@@ -38,4 +38,14 @@ py manage.py check
 py manage.py makemigrations --check --dry-run
 ```
 
+## Сбор статических файлов
+
+Исходные CSS, JavaScript и изображения находятся в `static/`. Перед развёртыванием выполните:
+
+```powershell
+py manage.py collectstatic --noinput
+```
+
+Файлы будут собраны в `staticfiles/` (эта папка не хранится в Git). В production настройте веб-сервер или CDN на раздачу содержимого этой папки по `STATIC_URL`; одна команда `collectstatic` сама по себе не настраивает раздачу.
+
 Шаблоны и статические ресурсы интерфейса пока являются заготовками в `templates/` и `static/`.

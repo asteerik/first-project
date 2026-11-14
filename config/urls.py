@@ -14,6 +14,8 @@ from jobs.page_views import (
 from jobs.employer_views import (
     EmployerApplicationStatusPage,
     EmployerDashboard,
+    EmployerResumeCatalog,
+    EmployerResumeDownloadPage,
     VacancyClosePage,
     VacancyCreatePage,
     VacancyEditPage,
@@ -48,6 +50,12 @@ jobs_pages = [
         name="application_resume",
     ),
     path("employer/", EmployerDashboard.as_view(), name="employer_dashboard"),
+    path("employer/resumes/", EmployerResumeCatalog.as_view(), name="employer_resume_catalog"),
+    path(
+        "employer/resumes/<int:pk>/download/",
+        EmployerResumeDownloadPage.as_view(),
+        name="employer_resume_download",
+    ),
     path(
         "employer/applications/<int:pk>/status/",
         EmployerApplicationStatusPage.as_view(),

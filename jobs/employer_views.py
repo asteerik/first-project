@@ -2,12 +2,14 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
-from accounts.models import Organization, User
+from accounts.models import CandidateProfile, CandidateResume, Organization, User
+from accounts.permissions import user_can_view_candidate_resume
 
 from .models import Application, Category, Vacancy
 
@@ -181,6 +183,48 @@ class EmployerDashboard(EmployerRequiredMixin, ListView):
         context["selected_application_status"] = selected_status
         context["applications"] = applications.filter(status=status_by_key[selected_status])
         return context
+
+
+class EmployerResumeCatalog(EmployerRequiredMixin, ListView):
+    template_name = "jobs/employer/resume_catalog.html"
+    context_object_name = "resumes"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return (
+            CandidateResume.objects.filter(
+                Q(resume_visibility=CandidateProfile.ResumeVisibility.PUBLIC)
+                | Q(
+                    resume_visibility=CandidateProfile.ResumeVisibility.AFTER_APPLICATION,
+                    candidate__applications__vacancy__organization__in=self.organizations,
+                )
+            )
+            .select_related("candidate")
+            .distinct()
+            .order_by("-updated_at", "-pk")
+        )
+
+
+class EmployerResumeDownloadPage(EmployerRequiredMixin, View):
+    def get(self, request, pk):
+        resume = get_object_or_404(
+            CandidateResume.objects.select_related("candidate"),
+            pk=pk,
+        )
+        if not resume.resume_file or not user_can_view_candidate_resume(request.user, resume):
+            raise Http404
+        try:
+            handle = resume.resume_file.open("rb")
+        except FileNotFoundError as exc:
+            raise Http404 from exc
+        response = FileResponse(
+            handle,
+            as_attachment=True,
+            filename=resume.resume_file_name or "resume",
+        )
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Cache-Control"] = "private, no-store"
+        return response
 
 
 class EmployerApplicationStatusPage(EmployerRequiredMixin, View):

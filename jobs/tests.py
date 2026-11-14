@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from accounts.models import CandidateResume, Organization, User
+from accounts.models import CandidateProfile, CandidateResume, Organization, User
 from jobs.models import Application, Category, ModerationLog, Vacancy
 
 
@@ -150,6 +150,108 @@ class RecruitmentApiTests(TestCase):
         self.assertEqual(
             response.data["results"][0]["candidate"]["experience"],
             "Чувствительные сведения резюме",
+        )
+
+    def test_resume_catalog_and_application_visibility_are_scoped(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import Client
+
+        candidate = self.register(
+            "resume-visibility-candidate@example.test",
+            "candidate",
+            full_name="Соискатель видимости",
+        )
+        profile = candidate.candidate_profile
+        public_resume = CandidateResume.objects.create(
+            candidate=profile,
+            title="Публичное резюме",
+            resume_visibility=CandidateProfile.ResumeVisibility.PUBLIC,
+            resume_file=SimpleUploadedFile("public.pdf", b"%PDF-1.4 public"),
+            resume_file_name="public.pdf",
+        )
+        after_application_resume = CandidateResume.objects.create(
+            candidate=profile,
+            title="Резюме после отклика",
+            resume_visibility=CandidateProfile.ResumeVisibility.AFTER_APPLICATION,
+            resume_file=SimpleUploadedFile("after.pdf", b"%PDF-1.4 after"),
+            resume_file_name="after.pdf",
+        )
+        private_resume = CandidateResume.objects.create(
+            candidate=profile,
+            title="Личное резюме",
+            resume_file=SimpleUploadedFile("private.pdf", b"%PDF-1.4 private"),
+            resume_file_name="private.pdf",
+        )
+        application = Application.objects.create(
+            vacancy=self.vacancy,
+            candidate=profile,
+            resume=private_resume,
+        )
+        other_employer = self.register(
+            "other-employer@example.test",
+            "employer",
+            organization_name="Другой работодатель",
+        )
+
+        employer_web = Client()
+        employer_web.force_login(self.employer)
+        catalog = employer_web.get("/employer/resumes/")
+        self.assertEqual(catalog.status_code, 200)
+        self.assertContains(catalog, "Публичное резюме")
+        self.assertContains(catalog, "Резюме после отклика")
+        self.assertNotContains(catalog, "Личное резюме")
+
+        public_download = employer_web.get(
+            f"/employer/resumes/{public_resume.pk}/download/"
+        )
+        self.assertEqual(public_download.status_code, 200)
+        public_download.close()
+        after_download = employer_web.get(
+            f"/employer/resumes/{after_application_resume.pk}/download/"
+        )
+        self.assertEqual(after_download.status_code, 200)
+        after_download.close()
+        self.assertEqual(
+            employer_web.get(f"/employer/resumes/{private_resume.pk}/download/").status_code,
+            404,
+        )
+
+        self.client.force_authenticate(self.employer)
+        detail = self.client.get(f"/api/applications/{application.pk}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.data["selected_resume"]["title"], "Личное резюме")
+        application_download = employer_web.get(f"/applications/{application.pk}/resume/")
+        self.assertEqual(application_download.status_code, 200)
+        self.assertEqual(application_download["Cache-Control"], "private, no-store")
+        self.assertEqual(b"".join(application_download.streaming_content), b"%PDF-1.4 private")
+        application_download.close()
+
+        other_web = Client()
+        other_web.force_login(other_employer)
+        other_catalog = other_web.get("/employer/resumes/")
+        self.assertContains(other_catalog, "Публичное резюме")
+        self.assertNotContains(other_catalog, "Резюме после отклика")
+        self.assertNotContains(other_catalog, "Личное резюме")
+        other_api = APIClient()
+        other_api.force_authenticate(other_employer)
+        self.assertEqual(
+            other_api.get(f"/api/applications/{application.pk}/").status_code,
+            404,
+        )
+        other_public_download = other_web.get(
+            f"/employer/resumes/{public_resume.pk}/download/"
+        )
+        self.assertEqual(other_public_download.status_code, 200)
+        other_public_download.close()
+        self.assertEqual(
+            other_web.get(
+                f"/employer/resumes/{after_application_resume.pk}/download/"
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            other_web.get(f"/applications/{application.pk}/resume/").status_code,
+            404,
         )
 
     def test_application_status_transitions_are_limited_by_role(self):

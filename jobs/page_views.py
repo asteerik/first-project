@@ -11,7 +11,7 @@ from django.views.generic import FormView, ListView, TemplateView
 from rest_framework.exceptions import ValidationError
 
 from accounts.models import CandidateProfile, CandidateResume, Organization, User
-from accounts.permissions import has_organization_access
+from accounts.permissions import has_organization_access, user_can_view_candidate_resume
 
 from .forms import ApplicationForm
 from .models import Application, Category, Vacancy
@@ -252,11 +252,24 @@ class ApplicationResumeDownloadPage(LoginRequiredMixin, View):
             raise Http404
         if not application.resume or not application.resume.resume_file:
             raise Http404
-        return FileResponse(
-            application.resume.resume_file.open("rb"),
+        if not user_can_view_candidate_resume(
+            request.user,
+            application.resume,
+            application=application,
+        ):
+            raise Http404
+        try:
+            handle = application.resume.resume_file.open("rb")
+        except FileNotFoundError as exc:
+            raise Http404 from exc
+        response = FileResponse(
+            handle,
             as_attachment=True,
             filename=application.resume.resume_file_name or "resume",
         )
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Cache-Control"] = "private, no-store"
+        return response
 
 
 class CandidateApplicationsPage(LoginRequiredMixin, ListView):

@@ -8,6 +8,7 @@
         <h1>Кабинет работодателя</h1>
         <a class="button" href="{% url 'jobs:employer_vacancy_new' %}">Создать вакансию</a>
     </div>
+    <p><a class="text-link" href="{% url 'jobs:employer_resume_catalog' %}">Каталог доступных резюме</a></p>
     {% for organization in organizations %}
     <p class="form-hint">
         Организация: <strong>{{ organization.name }}</strong> — {{ organization.get_verification_status_display }}.

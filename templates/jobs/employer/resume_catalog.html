@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Резюме кандидатов — Работа для Души{% endblock %}
+
+{% block content %}
+<section class="page-section container">
+    <div class="dashboard-head">
+        <div>
+            <h1>Резюме кандидатов</h1>
+            <p class="form-hint">Публичные резюме и резюме кандидатов, откликнувшихся в ваши организации.</p>
+        </div>
+        <a class="button" href="{% url 'jobs:employer_dashboard' %}">К откликам</a>
+    </div>
+    {% if resumes %}
+    <div class="dashboard-list">
+        {% for resume in resumes %}
+        <article class="dashboard-item">
+            <div>
+                <h2>{{ resume.candidate.full_name }}</h2>
+                <p>{{ resume.title }}{% if resume.desired_position %} · {{ resume.desired_position }}{% endif %}</p>
+                {% if resume.candidate.location %}<p class="form-hint">{{ resume.candidate.location }}</p>{% endif %}
+                {% if resume.experience %}<p><strong>Опыт и навыки</strong><br>{{ resume.experience|linebreaksbr }}</p>{% endif %}
+                {% if resume.education %}<p><strong>Образование</strong><br>{{ resume.education|linebreaksbr }}</p>{% endif %}
+                {% if resume.portfolio_url %}
+                <p><a class="text-link" href="{{ resume.portfolio_url }}" target="_blank" rel="noopener noreferrer">Портфолио</a></p>
+                {% endif %}
+            </div>
+            {% if resume.resume_file %}
+            <div class="dashboard-actions">
+                <a class="text-link" href="{% url 'jobs:employer_resume_download' resume.pk %}">Скачать файл резюме</a>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Страницы">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">← Назад</a>{% endif %}
+        <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Вперёд →</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <p>Пока нет доступных резюме.</p>
+        <p>Здесь появятся публичные резюме и резюме кандидатов, откликнувшихся в ваши организации.</p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

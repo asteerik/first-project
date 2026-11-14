@@ -57,10 +57,17 @@ def resume_form_fields(form):
     form.fields["portfolio_url"].help_text = "GitHub, LinkedIn, Behance или ваш личный сайт."
     form.fields["experience"].widget.attrs.update({"rows": 5, "data-rich-text": "true"})
     form.fields["education"].widget.attrs.update({"rows": 4, "data-rich-text": "true"})
-    form.fields["resume_visibility"].help_text = (
-        "Только мне — никто другой не увидит. После отклика — работодатели по вашим откликам. "
-        "Публичное — работодатели могут посмотреть данные и прикреплённый файл резюме."
-    )
+    if isinstance(form.instance, CandidateResume):
+        form.fields["resume_visibility"].help_text = (
+            "Только мне — работодатель увидит резюме только в отклике, который вы ему отправили. "
+            "После отклика — работодатели организаций, куда вы откликнулись. "
+            "Публичное — резюме доступно всем работодателям в каталоге."
+        )
+    else:
+        form.fields["resume_visibility"].help_text = (
+            "Только мне — никто другой не увидит. После отклика — работодатели по вашим откликам. "
+            "Публичное — работодатели могут посмотреть данные и прикреплённый файл резюме."
+        )
     form.fields["resume_file"].help_text = "PDF или DOCX, размером до 5 МБ."
     form.fields["resume_file"].widget.attrs.update(
         {"accept": ".pdf,.docx", "data-file-input": "true"}

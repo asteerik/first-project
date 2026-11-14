@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from .models import Organization, OrganizationMembership, User
+from .models import CandidateProfile, Organization, OrganizationMembership, User
 
 
 def has_organization_access(user, organization, managers_only=False):
@@ -48,4 +48,27 @@ def user_can_view_resume(user, profile):
         return False
     return profile.applications.filter(vacancy__organization__memberships__user=user).exists() or (
         profile.applications.filter(vacancy__organization__owner=user).exists()
+    )
+
+
+def user_can_view_candidate_resume(user, resume, application=None):
+    if not user.is_authenticated:
+        return False
+    if resume.candidate.user_id == user.pk:
+        return True
+    if user.role != User.Role.EMPLOYER:
+        return False
+    if resume.resume_visibility == CandidateProfile.ResumeVisibility.PUBLIC:
+        return True
+    if resume.resume_visibility == CandidateProfile.ResumeVisibility.AFTER_APPLICATION:
+        applications = resume.candidate.applications
+        return applications.filter(vacancy__organization__memberships__user=user).exists() or (
+            applications.filter(vacancy__organization__owner=user).exists()
+        )
+    if resume.resume_visibility != CandidateProfile.ResumeVisibility.PRIVATE or application is None:
+        return False
+    return (
+        application.resume_id == resume.pk
+        and application.candidate_id == resume.candidate_id
+        and has_organization_access(user, application.vacancy.organization)
     )

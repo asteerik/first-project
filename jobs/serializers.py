@@ -2,7 +2,11 @@ from rest_framework import serializers
 from django.urls import reverse
 
 from accounts.models import CandidateResume, Organization, User
-from accounts.permissions import has_organization_access, user_can_view_resume
+from accounts.permissions import (
+    has_organization_access,
+    user_can_view_candidate_resume,
+    user_can_view_resume,
+)
 from accounts.serializers import PublicCandidateSerializer, PublicOrganizationSerializer
 from .models import Application, Category, Complaint, Favorite, Vacancy
 
@@ -147,6 +151,13 @@ class ApplicationSerializer(serializers.ModelSerializer):
     def get_selected_resume(self, application):
         resume = application.resume
         if not resume:
+            return None
+        request = self.context.get("request")
+        if not request or not user_can_view_candidate_resume(
+            request.user,
+            resume,
+            application=application,
+        ):
             return None
         details = {
             "id": resume.pk,
